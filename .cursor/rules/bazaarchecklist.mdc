@@ -1,0 +1,29 @@
+---
+description: BazaarChecklist project context — product, Firebase, and AI workflow
+alwaysApply: true
+---
+
+# BazaarChecklist
+
+## Before large changes
+
+- Read [AGENTS.md](AGENTS.md), [docs/PRODUCT.md](docs/PRODUCT.md), and [docs/DATA_MODEL.md](docs/DATA_MODEL.md).
+- Do not assume MVP features that are still marked pending or TBD in PRODUCT.
+
+## Stack
+
+- Flutter app in `mobile/`; Firebase (Auth, Firestore) for v1; no Ruby/server unless docs say so.
+
+## Safety
+
+- Never commit API keys, `google-services.json`, `GoogleService-Info.plist`, or private keys.
+- Align mobile and web; avoid platform forks unless documented.
+
+## Edits
+
+- Match existing style; avoid unrelated refactors.
+- Update docs when changing product scope or data shapes.
+
+---
+
+**Rule scope**: This rule uses `alwaysApply: true`. If you prefer it only for Dart/Flutter files, change frontmatter to `alwaysApply: false` and set `globs` e.g. `mobile/**/*.dart`.

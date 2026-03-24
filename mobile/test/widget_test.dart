@@ -1,30 +1,101 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:mobile/main.dart';
+import 'package:flutter/material.dart';
+import 'package:mobile/features/auth/login_page.dart';
+import 'package:mobile/features/shell/app_shell_page.dart';
+import 'package:mobile/features/shared/ui/section_card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('section card renders title and child content', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SectionCard(title: 'Runs', child: Text('Card content')),
+        ),
+      ),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Runs'), findsOneWidget);
+    expect(find.text('Card content'), findsOneWidget);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('first-run auth popup appears once', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AppShellPage(
+          authLabel: 'Guest mode',
+          isGuest: true,
+          showFirstRunAuthPopup: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome to BazaarChecklist'), findsWidgets);
+    expect(find.text('Continue as guest'), findsOneWidget);
+    expect(find.text('Sign in or create account'), findsOneWidget);
+
+    await tester.tap(find.text('Continue as guest'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  testWidgets('login mode toggle updates primary CTA', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign in'), findsWidgets);
+    expect(find.text('Forgot password?'), findsOneWidget);
+
+    await tester.tap(find.text('Create account'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create account'), findsWidgets);
+    expect(find.text('Forgot password?'), findsNothing);
+  });
+
+  testWidgets('app shell applies updated initial tab intent to account', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AppShellPage(
+          authLabel: 'Guest mode',
+          isGuest: true,
+          showFirstRunAuthPopup: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Runs')),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AppShellPage(
+          authLabel: 'Signed in',
+          isGuest: false,
+          showFirstRunAuthPopup: false,
+          initialTabIndex: 2,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Account')),
+      findsOneWidget,
+    );
   });
 }

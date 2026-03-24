@@ -1,4 +1,4 @@
-package com.example.mobile
+package com.checklist.bazaar
 
 import io.flutter.embedding.android.FlutterActivity
 
