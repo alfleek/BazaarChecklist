@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Runs Empty - BazaarChecklist Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="prototype-body">
+    <div class="device-shell">
+      <div class="phone-screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i>
+          </div>
+        </div>
+        <main class="screen-content flex flex-col">
+          <header class="app-header">
+            <div>
+              <h1>Runs</h1>
+              <p>Start tracking your matches</p>
+            </div>
+            <button class="icon-button"><i class="fa-regular fa-user"></i></button>
+          </header>
+          <div class="glass-card p-6 text-center mt-16">
+            <img class="w-full h-40 object-cover rounded-2xl mb-4" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=900&q=80" alt="Gaming setup" />
+            <h2 class="text-lg font-semibold">No runs yet</h2>
+            <p class="text-sm text-slate-500 mt-2">Capture your first build, wins, and tier to unlock progress tracking in Catalog and Challenges.</p>
+            <button class="mt-5 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white px-4 py-2 text-sm font-semibold">
+              <i class="fa-solid fa-plus"></i> Add your first run
+            </button>
+          </div>
+        </main>
+        <button class="fab"><i class="fa-solid fa-plus"></i></button>
+        <nav class="bottom-tab">
+          <button class="tab-item active"><i class="fa-solid fa-trophy"></i><span>Runs</span></button>
+          <button class="tab-item"><i class="fa-solid fa-layer-group"></i><span>Catalog</span></button>
+          <button class="tab-item"><i class="fa-solid fa-list-check"></i><span>Challenges</span></button>
+        </nav>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

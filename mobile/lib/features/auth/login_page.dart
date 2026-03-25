@@ -13,7 +13,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static const _accountTabIndex = 2;
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -224,14 +223,14 @@ class _LoginPageState extends State<LoginPage> {
       sessionController.clearGuest();
       final result = await authService.signInWithGoogle();
       if (result != null && mounted) {
-        sessionController.setPreferredTabIndex(_accountTabIndex);
+        sessionController.requestOpenAccount();
         Navigator.of(context).maybePop();
       }
     }, closeOnSuccess: false);
   }
 
   Future<void> _continueAsGuest() async {
-    sessionController.setPreferredTabIndex(_accountTabIndex);
+    sessionController.requestOpenAccount();
     sessionController.continueAsGuest();
     if (!mounted) return;
     Navigator.of(context).maybePop();
@@ -275,7 +274,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await action();
       if (mounted && closeOnSuccess) {
-        sessionController.setPreferredTabIndex(_accountTabIndex);
+        sessionController.requestOpenAccount();
         Navigator.of(context).maybePop();
       }
     } catch (error) {

@@ -41,6 +41,10 @@ class BazaarChecklistApp extends StatelessWidget {
           backgroundColor: surface,
           foregroundColor: Color(0xFFF5E9D8),
           centerTitle: false,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          toolbarHeight: 64,
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: surfaceAlt,

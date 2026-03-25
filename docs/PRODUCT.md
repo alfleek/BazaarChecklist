@@ -38,9 +38,9 @@ This project is **not affiliated with or endorsed by** the makers of The Bazaar.
 - Bottom navigation has three primary tabs:
   - `Runs` (default home)
   - `Catalog`
-  - `Account`
+  - `Challenges`
+- `Account` is opened from the top app bar (person icon), not a bottom tab.
 - Run creation is a primary action from `Runs` via a `+ Add run` action (FAB or equivalent), not a dedicated tab.
-- `Challenges` remains a stretch feature and should not appear in primary bottom navigation until functional.
 
 ## Auth (confirmed for MVP)
 
@@ -98,15 +98,16 @@ The app/site should support:
 
 Status: **MVP**.
 
-### Achievement system
+### Achievement system (Challenges)
 
-The app/site should include an achievement-style progress area inspired by challenge systems:
+The **Challenges** tab provides checklist-style progress derived from saved runs and the catalog:
 
-- Progress by hero (for example “won with X/Y items tagged to hero A”).
-- Progress by item type tags.
-- Additional category groups can be added later.
+- **Win threshold**: user selects at least **Bronze**, **Silver**, **Gold** (default), or **Perfect**; progress uses each item’s **best** run result tier across all runs.
+- **Full checklist**: every catalog item; percentage bar = items meeting the threshold / total items.
+- **Grouped checklists**: heroes, item type tags, sizes, and starting rarity — each subgroup has its own bar; drill into a group for per-tag/sub-checklists.
+- **View in Catalog**: jumps to the Catalog tab with filters matching that checklist and **run-history filter off**.
 
-Status: **Stretch**.
+Status: **In app** (client-computed; no server beyond existing runs + catalog).
 
 ## Catalog fields (confirmed baseline)
 

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catalog Item Detail - BazaarChecklist Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="prototype-body">
+    <div class="device-shell">
+      <div class="phone-screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i>
+          </div>
+        </div>
+        <main class="screen-content">
+          <div class="flex items-center justify-between mb-4">
+            <button class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
+            <h1 class="text-lg font-semibold">Item Detail</h1>
+            <button class="icon-button"><i class="fa-solid fa-bookmark"></i></button>
+          </div>
+          <section class="glass-card p-4 mb-4">
+            <img class="w-full h-44 rounded-2xl object-cover mb-3" src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80" alt="Item detail image" />
+            <h2 class="text-xl font-semibold">Ember Core</h2>
+            <p class="text-sm text-slate-500 mt-1">Hero: Dooley • Type: Burn • Rarity: Gold • Size: Medium</p>
+            <p class="text-sm text-slate-600 mt-3">A scaling engine piece that transitions mid-game into sustained burn output. Best paired with economy stabilizers by day 4.</p>
+          </section>
+          <section class="glass-card p-4">
+            <h3 class="font-semibold text-sm mb-3">Your history</h3>
+            <div class="metric-grid">
+              <div class="metric">
+                <div class="label">Runs</div>
+                <div class="value">14</div>
+              </div>
+              <div class="metric">
+                <div class="label">Best tier</div>
+                <div class="value text-indigo-700">Gold</div>
+              </div>
+              <div class="metric">
+                <div class="label">Perfect</div>
+                <div class="value text-violet-700">1</div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

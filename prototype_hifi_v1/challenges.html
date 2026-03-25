@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Challenges - BazaarChecklist Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="prototype-body">
+    <div class="device-shell">
+      <div class="phone-screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i>
+          </div>
+        </div>
+        <main class="screen-content">
+          <header class="app-header">
+            <div>
+              <h1>Challenges</h1>
+              <p>Progress and checklists</p>
+            </div>
+            <button class="icon-button"><i class="fa-regular fa-user"></i></button>
+          </header>
+
+          <section class="glass-card p-4 mb-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-sm font-semibold">Threshold</h2>
+              <select data-threshold class="rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs">
+                <option>Bronze</option>
+                <option>Silver</option>
+                <option selected>Gold</option>
+                <option>Perfect</option>
+              </select>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Tracking completion at <span data-threshold-copy>Gold</span> tier.</p>
+          </section>
+
+          <section class="glass-card p-4 mb-4">
+            <div class="flex justify-between text-sm font-semibold">
+              <span>Full Catalog</span>
+              <span>72%</span>
+            </div>
+            <div class="progress-rail mt-2"><div class="progress-fill" style="width: 72%"></div></div>
+            <button class="mt-3 text-xs text-indigo-600 font-semibold">View in Catalog</button>
+          </section>
+
+          <div class="space-y-3">
+            <article class="glass-card p-4">
+              <div class="flex justify-between text-sm font-semibold"><span>Heroes</span><span>68%</span></div>
+              <div class="progress-rail mt-2"><div class="progress-fill" style="width: 68%"></div></div>
+            </article>
+            <article class="glass-card p-4">
+              <div class="flex justify-between text-sm font-semibold"><span>Type Tags</span><span>75%</span></div>
+              <div class="progress-rail mt-2"><div class="progress-fill" style="width: 75%"></div></div>
+            </article>
+            <article class="glass-card p-4">
+              <div class="flex justify-between text-sm font-semibold"><span>Sizes</span><span>81%</span></div>
+              <div class="progress-rail mt-2"><div class="progress-fill" style="width: 81%"></div></div>
+            </article>
+          </div>
+        </main>
+        <nav class="bottom-tab">
+          <button class="tab-item"><i class="fa-solid fa-trophy"></i><span>Runs</span></button>
+          <button class="tab-item"><i class="fa-solid fa-layer-group"></i><span>Catalog</span></button>
+          <button class="tab-item active"><i class="fa-solid fa-list-check"></i><span>Challenges</span></button>
+        </nav>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

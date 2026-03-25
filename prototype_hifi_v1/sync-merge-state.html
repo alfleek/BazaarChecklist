@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sync Merge State - BazaarChecklist Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="prototype-body">
+    <div class="device-shell">
+      <div class="phone-screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i>
+          </div>
+        </div>
+        <main class="screen-content flex items-center">
+          <section class="glass-card p-6 w-full text-center">
+            <div class="mx-auto w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-4">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <h1 class="text-xl font-semibold">Sync complete</h1>
+            <p class="text-sm text-slate-500 mt-2">Your guest data has been merged into your account. 14 new runs were synced, 2 duplicates skipped.</p>
+            <div class="glass-card p-4 mt-5 text-left">
+              <div class="flex justify-between py-1 text-sm"><span>Guest runs found</span><strong>16</strong></div>
+              <div class="flex justify-between py-1 text-sm"><span>Merged into cloud</span><strong>14</strong></div>
+              <div class="flex justify-between py-1 text-sm"><span>Exact duplicates</span><strong>2</strong></div>
+            </div>
+            <button class="mt-5 w-full rounded-xl bg-indigo-600 text-white py-3 text-sm font-semibold">Continue to Account</button>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings - BazaarChecklist Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="prototype-body">
+    <div class="device-shell">
+      <div class="phone-screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i>
+          </div>
+        </div>
+        <main class="screen-content">
+          <div class="flex items-center justify-between mb-4">
+            <button class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
+            <h1 class="text-lg font-semibold">Settings</h1>
+            <span class="w-8"></span>
+          </div>
+
+          <section class="glass-card p-4 mb-3">
+            <div class="flex items-center justify-between py-2">
+              <div>
+                <h3 class="text-sm font-semibold">Challenge tier default</h3>
+                <p class="text-xs text-slate-500">Applies across challenge screens</p>
+              </div>
+              <select class="rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs">
+                <option>Bronze</option><option>Silver</option><option selected>Gold</option><option>Perfect</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="glass-card p-4 mb-3">
+            <div class="flex items-center justify-between py-2">
+              <div>
+                <h3 class="text-sm font-semibold">Run history filter memory</h3>
+                <p class="text-xs text-slate-500">Preserve catalog run-filter state</p>
+              </div>
+              <input type="checkbox" checked class="h-5 w-5" />
+            </div>
+          </section>
+
+          <section class="glass-card p-4">
+            <p class="text-xs text-slate-500">Unofficial tracker and not affiliated with The Bazaar.</p>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

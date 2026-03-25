@@ -31,14 +31,17 @@ Until decided, agents should **not** introduce a heavy framework without updatin
 - Follow `analysis_options.yaml` in [mobile/](mobile/).
 - Prefer small, testable units for “won / not won” logic over embedding in widgets.
 - Avoid drive-by refactors unrelated to the task.
-- Keep MVP primary navigation focused on functional destinations only; do not add placeholder tabs to bottom navigation.
+- Bottom tabs are `Runs`, `Catalog`, and `Challenges` (functional). `Account` is a top-bar action, not a tab. Do not add empty placeholder tabs.
 - For run creation, prefer contextual entry points (for example FAB from `Runs`) over a dedicated `Build Input` tab.
 
 ## Navigation intent ownership
 
 Use a single owner for cross-flow tab/route intent to prevent competing navigation updates.
 
-- Post-auth tab selection must flow through `SessionController.preferredTabIndex`.
+- Post-auth **tab** selection must flow through `SessionController.preferredTabIndex` when switching tabs (e.g. jump to Catalog). The **visible** bottom tab is also mirrored in `SessionController.persistShellTabIndex` / `shellTabIndex` (no notify) so `AppShellPage` can restore the correct tab after `AuthGate` rebuilds (e.g. session `notifyListeners` from challenge tier or catalog prefill).
+- Post-auth **Account** screen uses `SessionController.requestOpenAccount()` + `takePendingOpenAccount()` in `AppShellPage` (pushed route, not a tab index).
+- Challenges **win threshold** (`ChallengeChecklistTier`) is stored on `SessionController` (`challengeChecklistTier` / `setChallengeChecklistTier`) so the hub and pushed category detail screens stay aligned when navigating back.
+- Catalog prefill from Challenges uses `SessionController.navigateToCatalogWithPrefill(CatalogPrefillArgs)`; `SearchPage` consumes `pendingCatalogPrefill` on the **next frame** (post-frame) and clears it so apply runs after `AuthGate`/`AnimatedBuilder` rebuild. Optional `preserveAttributeFilters` / `mergeAttributeFilters` exist on `CatalogPrefillArgs`; challenge CTAs use default **replace** (clear attribute filters + apply subgroup or empty for full catalog). `collapseCatalogControls: true` collapses the catalog search/filter panels after apply; users can expand again with **Show search & filters** on the Catalog tab.
 - Auth flows (`LoginPage` and first-run auth entry points) should set the preferred destination before exiting.
 - `AuthGate` should pass the preferred destination into `AppShellPage` as initialization intent.
 - `AppShellPage` should apply that intent once, then clear it, and should avoid resetting tab state from unrelated code paths.

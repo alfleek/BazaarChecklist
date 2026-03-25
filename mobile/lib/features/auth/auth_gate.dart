@@ -6,7 +6,6 @@ import 'package:mobile/features/shell/app_shell_page.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
-  static const _accountTabIndex = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -34,10 +33,11 @@ class AuthGate extends StatelessWidget {
             return AppShellPage(
               authLabel: authLabel,
               isGuest: isGuestContext,
+              userId: user?.uid,
               showFirstRunAuthPopup: !hasAuthenticatedUser,
               initialTabIndex: sessionController.preferredTabIndex,
               onLogout: () async {
-                sessionController.setPreferredTabIndex(_accountTabIndex);
+                sessionController.requestOpenAccount();
                 await authService.signOut();
                 sessionController.continueAsGuest();
               },

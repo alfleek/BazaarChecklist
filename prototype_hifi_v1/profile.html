@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile - BazaarChecklist Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="prototype-body">
+    <div class="device-shell">
+      <div class="phone-screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i>
+          </div>
+        </div>
+        <main class="screen-content">
+          <div class="flex items-center justify-between mb-4">
+            <button class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
+            <h1 class="text-lg font-semibold">Profile</h1>
+            <button class="icon-button"><i class="fa-solid fa-gear"></i></button>
+          </div>
+          <section class="glass-card p-5 mb-4">
+            <div class="flex items-center gap-4">
+              <img class="w-20 h-20 rounded-3xl object-cover" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80" alt="Profile photo" />
+              <div>
+                <h2 class="text-lg font-semibold">Lewis</h2>
+                <p class="text-sm text-slate-500">Investor demo account</p>
+              </div>
+            </div>
+          </section>
+          <section class="glass-card p-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="metric"><div class="label">Runs</div><div class="value">128</div></div>
+              <div class="metric"><div class="label">Perfect</div><div class="value text-violet-700">9</div></div>
+              <div class="metric"><div class="label">Catalog</div><div class="value">72%</div></div>
+              <div class="metric"><div class="label">Challenges</div><div class="value">18</div></div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

@@ -7,17 +7,21 @@ class SectionCard extends StatelessWidget {
     super.key,
     this.trailing,
     this.subtitle,
+    /// When set, blends this accent into the card outline (e.g. challenge tier).
+    this.shape,
   });
 
   final String title;
   final String? subtitle;
   final Widget child;
   final Widget? trailing;
+  final ShapeBorder? shape;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: shape,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -41,7 +45,8 @@ class SectionCard extends StatelessWidget {
               Text(
                 subtitle!,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFFD0C0A8),
+                      color: const Color(0xFFC3B5A0),
+                      height: 1.35,
                     ),
               ),
             ],

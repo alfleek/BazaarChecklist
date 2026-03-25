@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Challenge Detail - BazaarChecklist Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="prototype-body">
+    <div class="device-shell">
+      <div class="phone-screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i>
+          </div>
+        </div>
+        <main class="screen-content">
+          <div class="flex items-center justify-between mb-4">
+            <button class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
+            <h1 class="text-lg font-semibold">Heroes</h1>
+            <button class="icon-button"><i class="fa-solid fa-sliders"></i></button>
+          </div>
+
+          <section class="glass-card p-4 mb-4">
+            <div class="flex items-center justify-between text-sm font-semibold">
+              <span>Dooley</span>
+              <span>8 / 12 complete</span>
+            </div>
+            <div class="progress-rail mt-2"><div class="progress-fill" style="width: 67%"></div></div>
+            <button class="mt-3 text-xs text-indigo-600 font-semibold">View in Catalog</button>
+          </section>
+          <section class="glass-card p-4 mb-4">
+            <div class="flex items-center justify-between text-sm font-semibold">
+              <span>Pygmalien</span>
+              <span>11 / 14 complete</span>
+            </div>
+            <div class="progress-rail mt-2"><div class="progress-fill" style="width: 78%"></div></div>
+            <button class="mt-3 text-xs text-indigo-600 font-semibold">View in Catalog</button>
+          </section>
+          <section class="glass-card p-4">
+            <div class="flex items-center justify-between text-sm font-semibold">
+              <span>Mak</span>
+              <span>7 / 15 complete</span>
+            </div>
+            <div class="progress-rail mt-2"><div class="progress-fill" style="width: 46%"></div></div>
+            <button class="mt-3 text-xs text-indigo-600 font-semibold">View in Catalog</button>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

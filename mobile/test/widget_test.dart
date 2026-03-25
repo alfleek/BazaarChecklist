@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile/features/auth/login_page.dart';
+import 'package:mobile/features/auth/session_controller.dart';
+import 'package:mobile/features/runs/runs_repository.dart';
 import 'package:mobile/features/shell/app_shell_page.dart';
 import 'package:mobile/features/shared/ui/section_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    resetGuestRunsRepositoryForTest();
+    sessionController.persistShellTabIndex(0);
   });
 
   testWidgets('section card renders title and child content', (
@@ -37,14 +41,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome to BazaarChecklist'), findsWidgets);
+    expect(find.text('Welcome'), findsOneWidget);
+    expect(find.text('BazaarChecklist'), findsOneWidget);
     expect(find.text('Continue as guest'), findsOneWidget);
     expect(find.text('Sign in or create account'), findsOneWidget);
 
     await tester.tap(find.text('Continue as guest'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
   });
 
   testWidgets('login mode toggle updates primary CTA', (
@@ -63,7 +68,7 @@ void main() {
     expect(find.text('Forgot password?'), findsNothing);
   });
 
-  testWidgets('app shell applies updated initial tab intent to account', (
+  testWidgets('app shell applies updated initial tab intent to challenges', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -94,7 +99,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text('Account')),
+      find.descendant(of: find.byType(AppBar), matching: find.text('Challenges')),
       findsOneWidget,
     );
   });

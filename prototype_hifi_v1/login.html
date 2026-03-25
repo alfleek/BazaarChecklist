@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - BazaarChecklist Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="prototype-body">
+    <div class="device-shell">
+      <div class="phone-screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i>
+          </div>
+        </div>
+        <main class="screen-content">
+          <div class="flex items-center justify-between mb-8">
+            <button class="icon-button"><i class="fa-solid fa-arrow-left"></i></button>
+            <h1 class="text-lg font-semibold">Sign in</h1>
+            <span class="w-8"></span>
+          </div>
+
+          <section class="glass-card p-5">
+            <h2 class="text-xl font-semibold">Sync your progress</h2>
+            <p class="text-sm text-slate-500 mt-2">Save runs across devices and keep your challenge progress up to date.</p>
+            <div class="space-y-3 mt-5">
+              <input class="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="Email" />
+              <input type="password" class="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="Password" />
+            </div>
+            <button class="mt-4 w-full rounded-xl bg-indigo-600 text-white py-3 text-sm font-semibold">Sign in</button>
+            <button class="mt-3 w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold">
+              <i class="fa-brands fa-google mr-2"></i> Continue with Google
+            </button>
+            <button class="mt-3 w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-400 cursor-not-allowed" disabled>
+              <i class="fa-brands fa-apple mr-2"></i> Apple sign in (coming soon)
+            </button>
+            <button class="mt-4 text-sm font-semibold text-slate-500 w-full">Continue as guest</button>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

@@ -31,15 +31,15 @@ flowchart LR
 
 1. App loads catalog from Firestore (read-only) or from a cached snapshot when offline (behavior TBD in implementation).
 2. User records wins **locally** (including run result data: wins/perfect/tier) and can attach one local screenshot.
-3. Search/filter/sort is available as MVP; achievement progress is stretch and can be computed from local wins + cached catalog.
+3. Search/filter/sort is available as MVP; **Challenges** checklist progress is computed on-device from local wins + catalog (same for guests).
 
 ### Signed-in user
 
 1. User authenticates via Firebase Auth (email/password, Google, or Apple).
-2. Wins are stored under that user’s identity in Firestore (see [DATA_MODEL.md](DATA_MODEL.md)).
+2. Runs are stored under that user’s identity in Firestore (see [DATA_MODEL.md](DATA_MODEL.md)).
 3. One-time migration merges local guest wins after sign-in.
 4. Near-duplicate merge candidates are surfaced in a post-scan review queue for bulk user resolution.
-5. Search/filter/sort remains client-derived from synced data; achievements remain stretch.
+5. Search/filter/sort and Challenges progress remain client-derived from synced runs + catalog.
 
 ### Web vs mobile
 

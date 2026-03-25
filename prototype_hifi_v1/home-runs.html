@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Runs - BazaarChecklist Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="prototype-body">
+    <div class="device-shell">
+      <div class="phone-screen">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-icons">
+            <i class="fa-solid fa-signal"></i>
+            <i class="fa-solid fa-wifi"></i>
+            <i class="fa-solid fa-battery-three-quarters"></i>
+          </div>
+        </div>
+        <main class="screen-content">
+          <header class="app-header">
+            <div>
+              <h1>Runs</h1>
+              <p>Saved run history</p>
+            </div>
+            <button class="icon-button"><i class="fa-regular fa-user"></i></button>
+          </header>
+
+          <section class="glass-card p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-semibold">This week</h2>
+              <span class="text-xs text-slate-500">12 runs</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric">
+                <div class="label">Win rate</div>
+                <div class="value">64%</div>
+              </div>
+              <div class="metric">
+                <div class="label">Best tier</div>
+                <div class="value text-indigo-700">Gold</div>
+              </div>
+              <div class="metric">
+                <div class="label">Perfect</div>
+                <div class="value text-violet-700">2</div>
+              </div>
+            </div>
+          </section>
+
+          <div class="space-y-3">
+            <article class="list-item">
+              <img class="w-16 h-16 rounded-xl object-cover" src="https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=200&q=80" alt="Build board" />
+              <div class="flex-1">
+                <div class="flex items-start justify-between">
+                  <h3 class="text-sm font-semibold">Pyro Tempo Board</h3>
+                  <i class="fa-solid fa-ellipsis text-slate-400"></i>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Pygmalien • Ranked • 9 wins</p>
+                <div class="mt-2 flex items-center justify-between">
+                  <span class="tier-pill tier-gold"><i class="fa-solid fa-medal"></i>Gold</span>
+                  <span class="text-xs text-slate-400">Today</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="list-item">
+              <img class="w-16 h-16 rounded-xl object-cover" src="https://images.pexels.com/photos/7919/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=300" alt="Build board" />
+              <div class="flex-1">
+                <div class="flex items-start justify-between">
+                  <h3 class="text-sm font-semibold">Shield Economy Core</h3>
+                  <i class="fa-solid fa-ellipsis text-slate-400"></i>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Mak • Normal • 7 wins</p>
+                <div class="mt-2 flex items-center justify-between">
+                  <span class="tier-pill tier-silver"><i class="fa-solid fa-award"></i>Silver</span>
+                  <span class="text-xs text-slate-400">Yesterday</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="list-item">
+              <img class="w-16 h-16 rounded-xl object-cover" src="https://images.unsplash.com/photo-1518131678677-aad81cd47f46?auto=format&fit=crop&w=200&q=80" alt="Build board" />
+              <div class="flex-1">
+                <div class="flex items-start justify-between">
+                  <h3 class="text-sm font-semibold">Perfect Diamond Push</h3>
+                  <i class="fa-solid fa-ellipsis text-slate-400"></i>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Dooley • Ranked • 10 wins</p>
+                <div class="mt-2 flex items-center justify-between">
+                  <span class="tier-pill tier-perfect"><i class="fa-regular fa-gem"></i>Perfect</span>
+                  <span class="text-xs text-slate-400">Mar 22</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </main>
+
+        <button class="fab"><i class="fa-solid fa-plus"></i></button>
+        <nav class="bottom-tab">
+          <button class="tab-item active"><i class="fa-solid fa-trophy"></i><span>Runs</span></button>
+          <button class="tab-item"><i class="fa-solid fa-layer-group"></i><span>Catalog</span></button>
+          <button class="tab-item"><i class="fa-solid fa-list-check"></i><span>Challenges</span></button>
+        </nav>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

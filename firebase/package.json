@@ -1,0 +1,12 @@
+{
+  "name": "bazaarchecklist-firebase-tools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local Firestore seeding utilities for BazaarChecklist",
+  "scripts": {
+    "seed:firestore": "node seed_firestore.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.5.0"
+  }
+}

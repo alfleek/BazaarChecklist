@@ -23,6 +23,19 @@ class CatalogItem {
   final DateTime? updatedAt;
   final String? imageUrl;
 
+  /// Placeholder when a stored id is missing from the live catalog (e.g. inactive item).
+  factory CatalogItem.unknown(String id) {
+    return CatalogItem(
+      id: id,
+      name: 'Unknown item',
+      typeTags: const [],
+      heroTag: '',
+      startingRarity: '',
+      size: '',
+      active: false,
+    );
+  }
+
   factory CatalogItem.fromFirestore(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
   ) {
@@ -71,13 +84,6 @@ class CatalogItem {
       return value;
     }
     return fallback;
-  }
-
-  static double _asDouble(Object? value) {
-    if (value is num) {
-      return value.toDouble();
-    }
-    return 0;
   }
 
   static DateTime? _asDateTime(Object? value) {
