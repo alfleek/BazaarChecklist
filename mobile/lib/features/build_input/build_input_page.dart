@@ -39,6 +39,7 @@ class _BuildInputPageState extends State<BuildInputPage> {
   bool _saving = false;
   final List<CatalogItem> _selectedItems = [];
   bool _seededBoardFromExisting = false;
+  bool _seedBoardLoading = false;
 
   late final RunsRepository _runsRepo = createRunsRepository(
     isGuest: widget.isGuest,
@@ -56,20 +57,59 @@ class _BuildInputPageState extends State<BuildInputPage> {
       _perfect = run.perfect;
       _notesController.text = run.notes;
     }
+    if (widget.existingRun != null) {
+      _seedBoardItemsFromExisting();
+    }
   }
 
-  void _seedBoardItemsFromExisting(List<CatalogItem> catalog) {
+  Future<void> _seedBoardItemsFromExisting() async {
     final run = widget.existingRun;
-    if (run == null || _seededBoardFromExisting) return;
+    if (run == null) return;
+    if (_seededBoardFromExisting) return;
+    if (_seedBoardLoading) return;
+
     _seededBoardFromExisting = true;
-    final byId = {for (final c in catalog) c.id: c};
-    final items = run.itemIds
-        .map((id) => byId[id] ?? CatalogItem.unknown(id))
+    _seedBoardLoading = true;
+
+    // Start with placeholders so the UI can render immediately.
+    final placeholders = run.itemIds
+        .map((id) => CatalogItem.unknown(id))
         .toList(growable: false);
     setState(() {
       _selectedItems
         ..clear()
-        ..addAll(items);
+        ..addAll(placeholders);
+    });
+
+    final uniqueIds = run.itemIds.toSet().toList(growable: false);
+    List<CatalogItem?> fetched;
+    try {
+      fetched = await Future.wait(
+        uniqueIds.map((id) => catalogRepository.fetchCatalogItemById(id)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _seedBoardLoading = false;
+      });
+      return;
+    }
+
+    if (!mounted) return;
+
+    final byId = <String, CatalogItem?>{};
+    for (var i = 0; i < uniqueIds.length; i += 1) {
+      byId[uniqueIds[i]] = fetched[i];
+    }
+    final resolved = run.itemIds
+        .map((id) => byId[id] ?? CatalogItem.unknown(id))
+        .toList(growable: false);
+
+    setState(() {
+      _selectedItems
+        ..clear()
+        ..addAll(resolved);
+      _seedBoardLoading = false;
     });
   }
 
@@ -152,10 +192,10 @@ class _BuildInputPageState extends State<BuildInputPage> {
     }
   }
 
-  Future<void> _pickItem(List<CatalogItem> catalog) async {
-    final picked = await showCatalogItemPicker(
+  Future<void> _pickItem() async {
+    final picked = await showCatalogItemPickerPaged(
       context: context,
-      items: catalog,
+      pageSize: 50,
     );
     if (picked != null) {
       setState(() => _selectedItems.add(picked));
@@ -357,101 +397,78 @@ class _BuildInputPageState extends State<BuildInputPage> {
             SectionCard(
               title: 'Board items',
               subtitle: 'From the catalog. Duplicates allowed.',
-              child: StreamBuilder<List<CatalogItem>>(
-                stream: catalogRepository.watchActiveCatalogItems(),
-                builder: (context, snapshot) {
-                  final catalog = snapshot.data ?? const <CatalogItem>[];
-                  if (widget.existingRun != null &&
-                      !_seededBoardFromExisting &&
-                      (snapshot.hasData || snapshot.hasError)) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!mounted) return;
-                      _seedBoardItemsFromExisting(catalog);
-                    });
-                  }
-                  final loading = !snapshot.hasData && !snapshot.hasError;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (snapshot.hasError)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            'Catalog unavailable: ${snapshot.error}',
-                            style: TextStyle(color: Theme.of(context).colorScheme.error),
-                          ),
-                        ),
-                      if (loading)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else
-                        OutlinedButton.icon(
-                          onPressed: catalog.isEmpty ? null : () => _pickItem(catalog),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add item'),
-                        ),
-                      if (_selectedItems.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Text(
-                            'No items yet. Tap Add item.',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: const Color(0xFFC3B5A0),
-                                ),
-                          ),
-                        )
-                      else
-                        ..._selectedItems.asMap().entries.map((entry) {
-                          final i = entry.key;
-                          final item = entry.value;
-                          final base = item.name.isEmpty ? item.id : item.name;
-                          final priorSame = _selectedItems
-                              .take(i)
-                              .where((e) => e.id == item.id)
-                              .length;
-                          final label = priorSame > 0 ? '$base (${priorSame + 1})' : base;
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: Material(
-                              color: _surfaceInner,
-                              borderRadius: BorderRadius.circular(12),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                                  foregroundColor: Theme.of(context).colorScheme.primary,
-                                  child: Text('${i + 1}'),
-                                ),
-                                title: Text(
-                                  label,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                subtitle: Text(
-                                  [
-                                    if (item.heroTag.isNotEmpty) item.heroTag,
-                                    item.startingRarity,
-                                  ].where((s) => s.isNotEmpty).join(' · '),
-                                  style: const TextStyle(
-                                    color: Color(0xFFD0C0A8),
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.close),
-                                  onPressed: () {
-                                    setState(() => _selectedItems.removeAt(i));
-                                  },
-                                  tooltip: 'Remove',
-                                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _pickItem(),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add item'),
+                  ),
+                  if (_selectedItems.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        'No items yet. Tap Add item.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFFC3B5A0),
+                            ),
+                      ),
+                    )
+                  else
+                    ..._selectedItems.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final item = entry.value;
+                      final base = item.name.isEmpty ? item.id : item.name;
+                      final priorSame = _selectedItems
+                          .take(i)
+                          .where((e) => e.id == item.id)
+                          .length;
+                      final label =
+                          priorSame > 0 ? '$base (${priorSame + 1})' : base;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Material(
+                          color: _surfaceInner,
+                          borderRadius: BorderRadius.circular(12),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.2),
+                              foregroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primary,
+                              child: Text('${i + 1}'),
+                            ),
+                            title: Text(
+                              label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              [
+                                if (item.heroTag.isNotEmpty) item.heroTag,
+                                item.startingRarity,
+                              ].where((s) => s.isNotEmpty).join(' · '),
+                              style: const TextStyle(
+                                color: Color(0xFFD0C0A8),
+                                fontSize: 13,
                               ),
                             ),
-                          );
-                        }),
-                    ],
-                  );
-                },
+                            trailing: IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() => _selectedItems.removeAt(i));
+                              },
+                              tooltip: 'Remove',
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                ],
               ),
             ),
             const SizedBox(height: 8),

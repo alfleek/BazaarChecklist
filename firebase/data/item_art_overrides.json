@@ -1,0 +1,16 @@
+{
+  "forcedAssetByItemId": {
+    "bdb95fa6-1607-4fd6-a78b-063f826df717": "CF_S_VAN_Coral_D",
+    "55f11b65-77fa-4d70-9250-8a40d03961ad": "CF_S_ADV_Feather",
+    "1d217a87-df7b-4cb0-a99b-5e64bf2a8b2c": "CF_S_MAK_IonizedLightning",
+    "764ad6f5-f9a0-4edc-8692-fa166abe2ba3": "CF_S_DOO_Nanobots_D",
+    "ae039b3e-ef98-4dc7-a97c-1e06d2627e57": "CF_S_DOO_Nitro_D",
+    "16667da1-b904-4a3f-a1b5-a18fe4e6705a": "CF_L_JUL_Oven_D",
+    "7fa2b9c8-f038-44f9-8143-a4f8ee7f34bf": "CF_S_PYG_Piggles_D",
+    "9131cedf-e5e7-4a23-a90e-2576048419e8": "CF_M_DOO_WeaponizedCore",
+    "2705353a-b8ec-47f0-acd9-d641dd13d6d0": "CF_M_KAR_Bagpipe_D"
+  },
+  "disableImageForItemIds": [
+    "82d41afc-d1a9-41ee-a03d-fd9305bef8b5"
+  ]
+}

@@ -1,6 +1,14 @@
-# Firestore local seeding
+# Firebase tooling
 
-This folder contains local tooling for seeding Firestore test data.
+This folder contains local tooling for Firestore seeding and catalog/image workflows.
+
+## Folder layout
+
+- `scripts/` - executable JS/Python tools.
+- `data/` - source inputs used by scripts (for example art overrides).
+  - `data/sources/` - large local source exports (for example `cards.json`, gitignored).
+- `reports/` - generated reports and temporary outputs (ignored by git).
+- `docs/` - workflow docs for image/catalog pipelines.
 
 ## 1) Install dependencies
 

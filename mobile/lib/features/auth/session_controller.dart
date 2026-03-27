@@ -12,6 +12,7 @@ class CatalogPrefillArgs {
   const CatalogPrefillArgs({
     this.heroTags = const {},
     this.typeTags = const {},
+    this.hiddenTags = const {},
     this.rarities = const {},
     this.sizes = const {},
     this.clearSearch = true,
@@ -22,6 +23,7 @@ class CatalogPrefillArgs {
 
   final Set<String> heroTags;
   final Set<String> typeTags;
+  final Set<String> hiddenTags;
   final Set<String> rarities;
   final Set<String> sizes;
   final bool clearSearch;
@@ -121,7 +123,7 @@ class SessionController extends ChangeNotifier {
         'preserve=${args.preserveAttributeFilters} merge=${args.mergeAttributeFilters} '
         'clearSearch=${args.clearSearch} collapseControls=${args.collapseCatalogControls} '
         'hero=${args.heroTags} type=${args.typeTags} '
-        'rarity=${args.rarities} size=${args.sizes}',
+        'hidden=${args.hiddenTags} rarity=${args.rarities} size=${args.sizes}',
       );
     }
     notifyListeners();

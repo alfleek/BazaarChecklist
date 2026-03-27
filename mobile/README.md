@@ -1,16 +1,25 @@
-# mobile
+# BazaarChecklist mobile
 
-A new Flutter project.
+Flutter client for BazaarChecklist (mobile-first, web-capable).
 
-## Getting Started
+## Common commands
 
-This project is a starting point for a Flutter application.
+From `mobile/`:
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+flutter run
+flutter test
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Architecture
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Feature code lives in `lib/features/`.
+- Shared app bootstrap/navigation lives in `lib/main.dart` and top-level app files.
+- Product and data-shape source of truth:
+  - `../docs/PRODUCT.md`
+  - `../docs/DATA_MODEL.md`
+
+## Firebase
+
+See `../docs/FIREBASE_SETUP.md` for project setup and seeding options.

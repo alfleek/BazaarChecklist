@@ -16,9 +16,9 @@
 4. Create a **Firestore** database (production mode), then deploy **Security Rules** aligned with [DATA_MODEL.md](DATA_MODEL.md).
 5. (Optional for web) Enable **Firebase Hosting** for `flutter build web` output.
 
-## Manual catalog seeding (MVP)
+## Catalog seeding options (MVP)
 
-For MVP, catalog data is entered manually in Firebase Console (no seed script required).
+For MVP, the default remains manual entry in Firebase Console. Scripted seeding is also supported for faster iteration and bulk updates.
 
 Create documents under `catalog_items/{itemId}` with these baseline fields:
 
@@ -39,6 +39,24 @@ Example document (`catalog_items/vanessa_boiling_kettle`):
 - `startingRarity`: `rare`
 - `size`: `2`
 - `active`: `true`
+
+### Optional scripted seeding
+
+Tooling lives under `firebase/`:
+
+- Scripts: `firebase/scripts/`
+- Data inputs: `firebase/data/`
+- Pipeline docs: `firebase/docs/`
+- Large local source exports: `firebase/data/sources/` (gitignored)
+
+Run from `firebase/`:
+
+```bash
+npm install
+npm run seed:firestore -- --projectId <projectId> --serviceAccount ./service-account.local.json
+```
+
+For catalog/image extraction and upload workflows, follow `firebase/docs/README_IMAGE_PIPELINE.md`.
 
 ## Files that must stay out of git (typical)
 

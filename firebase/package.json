@@ -4,9 +4,12 @@
   "version": "1.0.0",
   "description": "Local Firestore seeding utilities for BazaarChecklist",
   "scripts": {
-    "seed:firestore": "node seed_firestore.js"
+    "seed:firestore": "node scripts/seed_firestore.js",
+    "inspect:cards": "node scripts/inspect_cards_json.js",
+    "seed:catalog-from-game": "node scripts/seed_catalog_from_game.js"
   },
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "firebase-admin": "^13.5.0"
   }
 }

@@ -1,0 +1,22 @@
+# OS / editor
+Thumbs.db
+.DS_Store
+
+# Flutter generated artifacts
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# Firebase tooling artifacts
+firebase/node_modules/
+firebase/.cache/
+firebase/reports/
+firebase/data/sources/
+firebase/service-account*.json
+firebase/*.local.json
+firebase/**/*.pyc
+firebase/**/__pycache__/
+
+# Legacy root data export location (now moved under firebase/data/sources)
+cards.json

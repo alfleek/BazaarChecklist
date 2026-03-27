@@ -95,6 +95,61 @@ void main() {
     });
   });
 
+  group('computeHiddenTypeTagSubgroupProgress', () {
+    test('counts items meeting tier for hidden tags', () {
+      final catalog = [
+        const CatalogItem(
+          id: 'a',
+          name: 'A',
+          typeTags: [],
+          hiddenTags: ['Heal'],
+          heroTag: 'H',
+          startingRarity: 'r',
+          size: 'Small',
+          active: true,
+        ),
+        const CatalogItem(
+          id: 'b',
+          name: 'B',
+          typeTags: [],
+          hiddenTags: ['Heal', 'Shield'],
+          heroTag: 'H',
+          startingRarity: 'r',
+          size: 'Small',
+          active: true,
+        ),
+      ];
+
+      final stats = <String, ItemRunStats>{
+        'a': const ItemRunStats(
+          runCount: 1,
+          bestTier: RunResultTier.goldVictory,
+          maxWins: 10,
+        ),
+        'b': const ItemRunStats(
+          runCount: 1,
+          bestTier: RunResultTier.bronzeVictory,
+          maxWins: 3,
+        ),
+      };
+
+      // Gold requires >= goldVictory (items below it do not count as completed).
+      final subgroups = computeHiddenTypeTagSubgroupProgress(
+        catalog: catalog,
+        stats: stats,
+        tier: ChallengeChecklistTier.gold,
+      );
+
+      final heal = subgroups.firstWhere((s) => s.id == 'Heal');
+      expect(heal.progress.total, 2);
+      expect(heal.progress.completed, 1);
+
+      final shield = subgroups.firstWhere((s) => s.id == 'Shield');
+      expect(shield.progress.total, 1);
+      expect(shield.progress.completed, 0);
+    });
+  });
+
   group('rollupSumSubgroups', () {
     test('sums numerators and denominators', () {
       final roll = rollupSumSubgroups([

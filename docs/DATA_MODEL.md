@@ -16,6 +16,7 @@
 |-------|------|--------|
 | `name` | string | Display name |
 | `typeTags` | array of string | Item type tags |
+| `hiddenTags` | array of string | Hidden tags tracked for Challenges; not shown in catalog filter UI |
 | `heroTag` | string | Hero association tag |
 | `startingRarity` | string | Initial rarity |
 | `size` | string or number | Item size (game-parity strings like `"Large"` are OK; legacy numeric seeds may exist) |
@@ -24,7 +25,8 @@
 
 Stretch field:
 
-- `imageUrl` (string).
+- `imageThumbUrl` (string, URL).
+- `imageFullUrl` (string, URL).
 
 ### `heroes/{heroId}`
 

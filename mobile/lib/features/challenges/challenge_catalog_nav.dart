@@ -23,6 +23,10 @@ void openCatalogForChallengeFilter(
         typeTags: {subgroupId!},
         collapseCatalogControls: true,
       ),
+    ChallengeCategoryKind.hiddenTypeTags => CatalogPrefillArgs(
+        hiddenTags: {subgroupId!},
+        collapseCatalogControls: true,
+      ),
     ChallengeCategoryKind.sizes => CatalogPrefillArgs(
         sizes: {subgroupId!},
         collapseCatalogControls: true,

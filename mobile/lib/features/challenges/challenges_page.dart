@@ -56,6 +56,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
   @override
   Widget build(BuildContext context) {
     final tier = sessionController.challengeChecklistTier;
+    final bottomPad = MediaQuery.paddingOf(context).bottom + 28;
     final runsRepo = createRunsRepository(
       isGuest: widget.isGuest,
       userId: widget.userId,
@@ -73,7 +74,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
           builder: (context, catSnapshot) {
             if (catSnapshot.hasError) {
               return ListView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
                 children: [
                   SectionCard(
                     title: 'Challenges',
@@ -104,6 +105,11 @@ class _ChallengesPageState extends State<ChallengesPage> {
               stats: stats,
               tier: tier,
             );
+            final hiddenTagSub = computeHiddenTypeTagSubgroupProgress(
+              catalog: catalog,
+              stats: stats,
+              tier: tier,
+            );
             final sizeSub = computeSizeSubgroupProgress(
               catalog: catalog,
               stats: stats,
@@ -115,13 +121,8 @@ class _ChallengesPageState extends State<ChallengesPage> {
               tier: tier,
             );
 
-            final heroRoll = rollupSumSubgroups(heroSub);
-            final tagRoll = rollupSumSubgroups(tagSub);
-            final sizeRoll = rollupSumSubgroups(sizeSub);
-            final rarityRoll = rollupSumSubgroups(raritySub);
-
             return ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
               children: [
                 if (runsErrored)
                   Padding(
@@ -188,7 +189,6 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 const SizedBox(height: 12),
                 _ChallengeHubRow(
                   kind: ChallengeCategoryKind.heroes,
-                  rollup: heroRoll,
                   subgroupCount: heroSub.length,
                   tier: tier,
                   onTap: () => _openDetail(ChallengeCategoryKind.heroes),
@@ -196,15 +196,21 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 const SizedBox(height: 10),
                 _ChallengeHubRow(
                   kind: ChallengeCategoryKind.typeTags,
-                  rollup: tagRoll,
                   subgroupCount: tagSub.length,
                   tier: tier,
                   onTap: () => _openDetail(ChallengeCategoryKind.typeTags),
                 ),
                 const SizedBox(height: 10),
                 _ChallengeHubRow(
+                  kind: ChallengeCategoryKind.hiddenTypeTags,
+                  subgroupCount: hiddenTagSub.length,
+                  tier: tier,
+                  onTap: () =>
+                      _openDetail(ChallengeCategoryKind.hiddenTypeTags),
+                ),
+                const SizedBox(height: 10),
+                _ChallengeHubRow(
                   kind: ChallengeCategoryKind.sizes,
-                  rollup: sizeRoll,
                   subgroupCount: sizeSub.length,
                   tier: tier,
                   onTap: () => _openDetail(ChallengeCategoryKind.sizes),
@@ -212,7 +218,6 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 const SizedBox(height: 10),
                 _ChallengeHubRow(
                   kind: ChallengeCategoryKind.startingRarities,
-                  rollup: rarityRoll,
                   subgroupCount: raritySub.length,
                   tier: tier,
                   onTap: () => _openDetail(ChallengeCategoryKind.startingRarities),
@@ -229,14 +234,12 @@ class _ChallengesPageState extends State<ChallengesPage> {
 class _ChallengeHubRow extends StatelessWidget {
   const _ChallengeHubRow({
     required this.kind,
-    required this.rollup,
     required this.subgroupCount,
     required this.tier,
     required this.onTap,
   });
 
   final ChallengeCategoryKind kind;
-  final ChecklistProgress rollup;
   final int subgroupCount;
   final ChallengeChecklistTier tier;
   final VoidCallback onTap;
@@ -280,8 +283,6 @@ class _ChallengeHubRow extends StatelessWidget {
                   const Icon(Icons.chevron_right, color: Color(0xFFC3B5A0)),
                 ],
               ),
-              const SizedBox(height: 12),
-              ChallengeProgressBar(progress: rollup, tier: tier),
             ],
           ),
         ),

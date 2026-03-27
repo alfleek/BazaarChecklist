@@ -109,6 +109,38 @@ List<SubgroupProgress> computeTypeTagSubgroupProgress({
   }).toList(growable: false);
 }
 
+List<SubgroupProgress> computeHiddenTypeTagSubgroupProgress({
+  required List<CatalogItem> catalog,
+  required Map<String, ItemRunStats> stats,
+  required ChallengeChecklistTier tier,
+}) {
+  final tags = <String>{};
+  for (final item in catalog) {
+    tags.addAll(
+      item.hiddenTags.map((t) => t.trim()).where((t) => t.isNotEmpty),
+    );
+  }
+
+  final sorted = tags.toList()..sort();
+  return sorted.map((tag) {
+    final items = catalog
+        .where(
+          (i) => i.hiddenTags.map((t) => t.trim()).toSet().contains(tag),
+        )
+        .toList();
+    var done = 0;
+    for (final item in items) {
+      final best = stats[item.id]?.bestTier ?? RunResultTier.defeat;
+      if (itemMeetsChallengeTier(best, tier)) done++;
+    }
+    return SubgroupProgress(
+      id: tag,
+      label: tag,
+      progress: ChecklistProgress(completed: done, total: items.length),
+    );
+  }).toList(growable: false);
+}
+
 List<SubgroupProgress> computeSizeSubgroupProgress({
   required List<CatalogItem> catalog,
   required Map<String, ItemRunStats> stats,

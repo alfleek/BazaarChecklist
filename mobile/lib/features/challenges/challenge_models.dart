@@ -22,6 +22,7 @@ enum ChallengeCategoryKind {
   fullCatalog,
   heroes,
   typeTags,
+  hiddenTypeTags,
   sizes,
   startingRarities,
 }
@@ -31,6 +32,7 @@ extension ChallengeCategoryKindLabels on ChallengeCategoryKind {
         ChallengeCategoryKind.fullCatalog => 'Every item',
         ChallengeCategoryKind.heroes => 'Heroes',
         ChallengeCategoryKind.typeTags => 'Item tags',
+        ChallengeCategoryKind.hiddenTypeTags => 'Hidden tags',
         ChallengeCategoryKind.sizes => 'Sizes',
         ChallengeCategoryKind.startingRarities => 'Starting tiers',
       };
@@ -41,6 +43,8 @@ extension ChallengeCategoryKindLabels on ChallengeCategoryKind {
         ChallengeCategoryKind.heroes => 'Per hero tag.',
         ChallengeCategoryKind.typeTags =>
           'Per tag (an item can count toward several).',
+        ChallengeCategoryKind.hiddenTypeTags =>
+          'Per hidden tag.',
         ChallengeCategoryKind.sizes => 'Per size.',
         ChallengeCategoryKind.startingRarities => 'Per starting rarity.',
       };

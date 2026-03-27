@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/features/auth/session_controller.dart';
 import 'package:mobile/features/catalog/catalog_item.dart';
+import 'package:mobile/features/catalog/catalog_item_detail_page.dart';
 import 'package:mobile/features/catalog/catalog_item_run_stats.dart';
+import 'package:mobile/features/catalog/catalog_search_utils.dart';
 import 'package:mobile/features/catalog/catalog_repository.dart';
 import 'package:mobile/features/runs/run_record.dart';
 import 'package:mobile/features/runs/run_result_tier.dart';
@@ -28,12 +33,20 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  int _reloadKey = 0;
+  String _searchQueryLower = '';
+  String _pendingSearchQuery = '';
+  Timer? _searchDebounce;
+
   bool _catalogPrefillApplyScheduled = false;
   bool _catalogControlsExpanded = true;
 
+  final ScrollController _catalogScrollController = ScrollController();
+  double _browseScrollOffset = 0;
+  double _searchScrollOffset = 0;
+
   final Set<String> _selectedHeroTags = {};
   final Set<String> _selectedTypeTags = {};
+  final Set<String> _selectedHiddenTags = {};
   final Set<String> _selectedRarities = {};
   final Set<String> _selectedSizes = {};
 
@@ -65,6 +78,7 @@ class _SearchPageState extends State<SearchPage> {
   void initState() {
     super.initState();
     sessionController.addListener(_onSessionChangedForCatalogPrefill);
+    _catalogScrollController.addListener(_rememberScrollOffsetByMode);
     _scheduleCatalogPrefillApply();
   }
 
@@ -113,6 +127,9 @@ class _SearchPageState extends State<SearchPage> {
         if (args.typeTags.isNotEmpty) {
           _selectedTypeTags.addAll(args.typeTags);
         }
+        if (args.hiddenTags.isNotEmpty) {
+          _selectedHiddenTags.addAll(args.hiddenTags);
+        }
         if (args.rarities.isNotEmpty) {
           _selectedRarities.addAll(args.rarities);
         }
@@ -126,6 +143,9 @@ class _SearchPageState extends State<SearchPage> {
         _selectedTypeTags
           ..clear()
           ..addAll(args.typeTags);
+        _selectedHiddenTags
+          ..clear()
+          ..addAll(args.hiddenTags);
         _selectedRarities
           ..clear()
           ..addAll(args.rarities);
@@ -138,6 +158,8 @@ class _SearchPageState extends State<SearchPage> {
       if (args.clearSearch) {
         _searchController.clear();
         _searchQuery = '';
+        _searchQueryLower = '';
+        _pendingSearchQuery = '';
       }
       if (args.collapseCatalogControls) {
         _catalogControlsExpanded = false;
@@ -146,16 +168,56 @@ class _SearchPageState extends State<SearchPage> {
     sessionController.clearPendingCatalogPrefill();
   }
 
+  // Catalog loading is stream-driven via [catalogRepository.watchActiveCatalogItems].
+
   @override
   void dispose() {
     sessionController.removeListener(_onSessionChangedForCatalogPrefill);
+    _catalogScrollController.removeListener(_rememberScrollOffsetByMode);
+    _searchDebounce?.cancel();
     _searchController.dispose();
+    _catalogScrollController.dispose();
     super.dispose();
+  }
+
+  void _rememberScrollOffsetByMode() {
+    if (!_catalogScrollController.hasClients) return;
+    final offset = _catalogScrollController.offset;
+    if (_searchQueryLower.isEmpty) {
+      _browseScrollOffset = offset;
+    } else {
+      _searchScrollOffset = offset;
+    }
+  }
+
+  void _applySearchQueryWithScrollRestore(String rawQuery) {
+    final nextQuery = rawQuery;
+    final nextNorm = normalizeCatalogSearchQuery(nextQuery);
+    final prevModeWasSearch = _searchQueryLower.isNotEmpty;
+    final nextModeIsSearch = nextNorm.isNotEmpty;
+
+    _rememberScrollOffsetByMode();
+
+    setState(() {
+      _searchQuery = nextQuery;
+      _searchQueryLower = nextNorm;
+    });
+
+    if (prevModeWasSearch == nextModeIsSearch) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_catalogScrollController.hasClients) return;
+      final target = nextModeIsSearch ? _searchScrollOffset : _browseScrollOffset;
+      final pos = _catalogScrollController.position;
+      final clamped = target.clamp(0, pos.maxScrollExtent).toDouble();
+      if ((_catalogScrollController.offset - clamped).abs() < 1) return;
+      _catalogScrollController.jumpTo(clamped);
+    });
   }
 
   bool get _hasActiveFilters {
     return _selectedHeroTags.isNotEmpty ||
         _selectedTypeTags.isNotEmpty ||
+        _selectedHiddenTags.isNotEmpty ||
         _selectedRarities.isNotEmpty ||
         _selectedSizes.isNotEmpty ||
         _winFilterEnabled ||
@@ -168,6 +230,7 @@ class _SearchPageState extends State<SearchPage> {
     setState(() {
       _selectedHeroTags.clear();
       _selectedTypeTags.clear();
+      _selectedHiddenTags.clear();
       _selectedRarities.clear();
       _selectedSizes.clear();
       _winFilterEnabled = false;
@@ -175,25 +238,64 @@ class _SearchPageState extends State<SearchPage> {
       _perfectOnly = false;
       _sortKey = 'alphabetical';
       _sortAscending = true;
-      _searchController.clear();
-      _searchQuery = '';
+      _pendingSearchQuery = '';
     });
+    _searchController.clear();
+    _applySearchQueryWithScrollRestore('');
   }
 
   List<CatalogItem> _applySearch(
     List<CatalogItem> items,
     String query,
+    Map<String, CatalogItemSearchFields> fieldsById,
   ) {
-    final trimmed = query.trim().toLowerCase();
-    if (trimmed.isEmpty) return items;
+    final qLower = normalizeCatalogSearchQuery(query);
+    if (qLower.isEmpty) return items;
     return items.where((item) {
-      final matchesName = item.name.toLowerCase().contains(trimmed);
-      final matchesHero = item.heroTag.toLowerCase().contains(trimmed);
-      final matchesTag = item.typeTags.any(
-        (tag) => tag.toLowerCase().contains(trimmed),
-      );
-      return matchesName || matchesHero || matchesTag;
+      final f = fieldsById[item.id] ?? buildCatalogItemSearchFields(item);
+      return f.matchesLower(qLower);
     }).toList(growable: false);
+  }
+
+  // No search prefetching needed: we load the full catalog stream once.
+
+  int _compareByWinsSort(
+    CatalogItem a,
+    CatalogItem b,
+    Map<String, ItemRunStats> stats,
+    bool ascending,
+  ) {
+    int nameCmp(CatalogItem x, CatalogItem y) {
+      final na = x.name.isEmpty ? x.id : x.name;
+      final nb = y.name.isEmpty ? y.id : y.name;
+      return na.toLowerCase().compareTo(nb.toLowerCase());
+    }
+
+    final sa = stats[a.id];
+    final sb = stats[b.id];
+    final countA = sa?.runCount ?? 0;
+    final countB = sb?.runCount ?? 0;
+    final tierA = runResultTierRank(sa?.bestTier ?? RunResultTier.defeat);
+    final tierB = runResultTierRank(sb?.bestTier ?? RunResultTier.defeat);
+    final maxWinsA = sa?.maxWins ?? 0;
+    final maxWinsB = sb?.maxWins ?? 0;
+
+    final countCmp = ascending
+        ? countA.compareTo(countB)
+        : countB.compareTo(countA);
+    if (countCmp != 0) return countCmp;
+
+    final tierCmp = ascending
+        ? tierA.compareTo(tierB)
+        : tierB.compareTo(tierA);
+    if (tierCmp != 0) return tierCmp;
+
+    final maxWinsCmp = ascending
+        ? maxWinsA.compareTo(maxWinsB)
+        : maxWinsB.compareTo(maxWinsA);
+    if (maxWinsCmp != 0) return maxWinsCmp;
+
+    return nameCmp(a, b);
   }
 
   void _sortInPlace(
@@ -210,13 +312,7 @@ class _SearchPageState extends State<SearchPage> {
 
     switch (sortKey) {
       case 'wins':
-        items.sort((a, b) {
-          final ca = stats[a.id]?.runCount ?? 0;
-          final cb = stats[b.id]?.runCount ?? 0;
-          final c = ascending ? ca.compareTo(cb) : cb.compareTo(ca);
-          if (c != 0) return c;
-          return nameCmp(a, b);
-        });
+        items.sort((a, b) => _compareByWinsSort(a, b, stats, ascending));
       case 'alphabetical':
         items.sort(nameCmp);
         if (!ascending) {
@@ -232,11 +328,12 @@ class _SearchPageState extends State<SearchPage> {
 
   List<CatalogItem> _applyPipeline({
     required List<CatalogItem> catalog,
-    required List<RunRecord> runs,
     required Map<String, ItemRunStats> stats,
     required bool applyWinFilter,
+    required Set<String> winFilterPassSet,
+    required Map<String, CatalogItemSearchFields> fieldsById,
   }) {
-    var list = _applySearch(catalog, _searchQuery);
+    var list = _applySearch(catalog, _searchQuery, fieldsById);
     list = list
         .where(
           (item) => catalogItemMatchesAttributeFilters(
@@ -248,20 +345,68 @@ class _SearchPageState extends State<SearchPage> {
           ),
         )
         .toList(growable: false);
-    if (applyWinFilter) {
+
+    if (_selectedHiddenTags.isNotEmpty) {
       list = list
-          .where(
-            (item) => itemPassesWinHistoryFilter(
-              itemId: item.id,
-              runs: runs,
-              minWins: _minWins,
-              perfectOnly: _perfectOnly,
-            ),
-          )
+          .where((item) {
+            final have = item.hiddenTags.map((t) => t.trim()).toSet();
+            for (final t in _selectedHiddenTags) {
+              if (!have.contains(t.trim())) return false;
+            }
+            return true;
+          })
           .toList(growable: false);
     }
+    if (applyWinFilter) {
+      list =
+          list.where((item) => winFilterPassSet.contains(item.id)).toList(growable: false);
+    }
+
     final sorted = List<CatalogItem>.from(list);
-    _sortInPlace(sorted, stats, _sortKey, _sortAscending);
+
+    final qLower = _searchQueryLower.trim();
+    if (qLower.isNotEmpty) {
+      // Relevance is used only for sorting when the user provides a query.
+      // We keep the selected sort key as a deterministic tiebreaker.
+      final relevanceScoreById = <String, int>{
+        for (final item in sorted)
+          item.id: computeCatalogItemRelevanceScore(
+            fields: fieldsById[item.id] ?? buildCatalogItemSearchFields(item),
+            queryLower: qLower,
+          ),
+      };
+
+      int compareBySortKey(CatalogItem a, CatalogItem b) {
+        int nameCmp(CatalogItem x, CatalogItem y) {
+          final na = x.name.isEmpty ? x.id : x.name;
+          final nb = y.name.isEmpty ? y.id : y.name;
+          return na.toLowerCase().compareTo(nb.toLowerCase());
+        }
+
+        switch (_sortKey) {
+          case 'wins': {
+            return _compareByWinsSort(a, b, stats, _sortAscending);
+          }
+          case 'alphabetical': {
+            final c = nameCmp(a, b);
+            return _sortAscending ? c : -c;
+          }
+          default: {
+            final c = nameCmp(a, b);
+            return _sortAscending ? c : -c;
+          }
+        }
+      }
+
+      sorted.sort((a, b) {
+        final ra = relevanceScoreById[a.id] ?? 0;
+        final rb = relevanceScoreById[b.id] ?? 0;
+        if (ra != rb) return rb.compareTo(ra); // higher relevance first
+        return compareBySortKey(a, b);
+      });
+    } else {
+      _sortInPlace(sorted, stats, _sortKey, _sortAscending);
+    }
     return sorted;
   }
 
@@ -280,247 +425,442 @@ class _SearchPageState extends State<SearchPage> {
             ? runSnapshot.data!
             : const <RunRecord>[];
         final stats = runsErrored ? <String, ItemRunStats>{} : buildItemRunStatsMap(runs);
-
         return StreamBuilder<List<CatalogItem>>(
-          key: ValueKey(_reloadKey),
           stream: catalogRepository.watchActiveCatalogItems(),
           builder: (context, catSnapshot) {
-            return ListView(
-              padding: _catalogListPadding(context),
-              children: [
-                SectionCard(
-                  title: 'Search & filters',
-                  subtitle: _catalogControlsExpanded
-                      ? 'Search, sort, and filter.'
-                      : 'Tap the tune icon to expand.',
-                  trailing: IconButton(
-                    tooltip: _catalogControlsExpanded
-                        ? 'Hide search & filters'
-                        : 'Show search & filters',
-                    onPressed: () => setState(() {
-                      _catalogControlsExpanded = !_catalogControlsExpanded;
-                    }),
-                    icon: Icon(
-                      _catalogControlsExpanded ? Icons.expand_less : Icons.tune,
-                    ),
+            final horizontal = 16.0;
+            final topPad = 16.0;
+            final bottomPad = _catalogListPadding(context).bottom;
+
+            final catalog = catSnapshot.data ?? const <CatalogItem>[];
+            final fieldsById = <String, CatalogItemSearchFields>{
+              for (final item in catalog) item.id: buildCatalogItemSearchFields(item),
+            };
+
+            // Attribute options derived from the loaded catalog.
+            final attributeHeroes = catalog
+                .map((e) => e.heroTag)
+                .where((s) => s.isNotEmpty)
+                .toSet()
+                .toList()
+              ..sort();
+
+            final tags = <String>{};
+            for (final item in catalog) {
+              tags.addAll(item.typeTags);
+            }
+            final attributeTypeTags = tags.toList()..sort();
+
+            final attributeRarities = catalog
+                .map((e) => e.startingRarity)
+                .where((s) => s.isNotEmpty)
+                .toSet()
+                .toList()
+              ..sort();
+
+            final attributeSizes = catalog
+                .map(normalizedCatalogSize)
+                .where((s) => s.isNotEmpty)
+                .toSet()
+                .toList()
+              ..sort();
+
+            // Build filtered results once per build; slivers virtualize row widgets.
+            final effectiveRuns = runsErrored ? const <RunRecord>[] : runs;
+            final effectiveStats = runsErrored ? <String, ItemRunStats>{} : stats;
+
+            final winFilterActive = _winFilterEnabled && !runsErrored;
+            final qualifiedRunCountByItemId = <String, int>{};
+            final winFilterPassSet = <String>{};
+            if (winFilterActive) {
+              for (final r in effectiveRuns) {
+                final qualifies =
+                    r.wins >= _minWins && (!(_perfectOnly) || r.perfect);
+                if (!qualifies) continue;
+                for (final itemId in r.itemIds.toSet()) {
+                  qualifiedRunCountByItemId.update(
+                    itemId,
+                    (c) => c + 1,
+                    ifAbsent: () => 1,
+                  );
+                }
+              }
+              winFilterPassSet.addAll(qualifiedRunCountByItemId.keys);
+            }
+
+            final filtered = catSnapshot.hasData
+                ? _applyPipeline(
+                    catalog: catalog,
+                    stats: effectiveStats,
+                    applyWinFilter: winFilterActive,
+                    winFilterPassSet: winFilterPassSet,
+                    fieldsById: fieldsById,
+                  )
+                : const <CatalogItem>[];
+
+            Widget sliverBox(Widget child) =>
+                SliverToBoxAdapter(child: child);
+
+            return CustomScrollView(
+              controller: _catalogScrollController,
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontal,
+                    topPad,
+                    horizontal,
+                    0,
                   ),
-                  child: _catalogControlsExpanded
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            TextField(
-                              controller: _searchController,
-                              onChanged: (value) =>
-                                  setState(() => _searchQuery = value),
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.search),
-                                labelText: 'Search items',
-                                hintText: 'Item name or keyword',
-                                suffixIcon: _searchQuery.isEmpty
-                                    ? null
-                                    : IconButton(
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          setState(() => _searchQuery = '');
-                                        },
-                                        icon: const Icon(Icons.clear),
-                                      ),
-                              ),
+                  sliver: sliverBox(
+                    SectionCard(
+                      title: 'Search & filters',
+                      subtitle: _catalogControlsExpanded
+                          ? 'Search, sort, and filter.'
+                          : 'Tap the tune icon to expand.',
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton(
+                            onPressed: _hasActiveFilters ? _clearFilters : null,
+                            child: const Text('Clear all'),
+                          ),
+                          IconButton(
+                            tooltip: _catalogControlsExpanded
+                                ? 'Hide search & filters'
+                                : 'Show search & filters',
+                            onPressed: () => setState(() {
+                              _catalogControlsExpanded = !_catalogControlsExpanded;
+                            }),
+                            icon: Icon(
+                              _catalogControlsExpanded
+                                  ? Icons.expand_less
+                                  : Icons.tune,
                             ),
-                            if (runsErrored) ...[
-                              const SizedBox(height: 12),
-                              Material(
-                                color: _surfaceInner,
-                                borderRadius: BorderRadius.circular(12),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(
-                                        Icons.warning_amber_rounded,
-                                        color: Theme.of(context).colorScheme.error,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          'Runs unavailable (${runSnapshot.error}). '
-                                          'Stats and run-history filter need run data.',
-                                          style: TextStyle(
-                                            color: Theme.of(context).colorScheme.error,
-                                            height: 1.35,
+                          ),
+                        ],
+                      ),
+                      child: _catalogControlsExpanded
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                TextField(
+                                  controller: _searchController,
+                                  onChanged: (value) {
+                                    _pendingSearchQuery = value;
+                                    _searchDebounce?.cancel();
+                                    _searchDebounce = Timer(
+                                      const Duration(milliseconds: 180),
+                                      () {
+                                        if (!mounted) return;
+                                        _applySearchQueryWithScrollRestore(
+                                          _pendingSearchQuery,
+                                        );
+                                      },
+                                    );
+                                  },
+                                  decoration: InputDecoration(
+                                    prefixIcon: const Icon(Icons.search),
+                                    labelText: 'Search items',
+                                    hintText: 'Item name or keyword',
+                                    suffixIcon: _searchQuery.isEmpty
+                                        ? null
+                                        : IconButton(
+                                            onPressed: () {
+                                              _searchDebounce?.cancel();
+                                              _pendingSearchQuery = '';
+                                              _searchController.clear();
+                                              _applySearchQueryWithScrollRestore('');
+                                            },
+                                            icon: const Icon(Icons.clear),
                                           ),
-                                        ),
-                                      ),
-                                    ],
                                   ),
                                 ),
-                              ),
-                            ],
-                            const SizedBox(height: 16),
-                            if (catSnapshot.hasData)
-                              _CatalogAttributeFilters(
-                                catalog: catSnapshot.data!,
-                                selectedHeroTags: _selectedHeroTags,
-                                selectedTypeTags: _selectedTypeTags,
-                                selectedRarities: _selectedRarities,
-                                selectedSizes: _selectedSizes,
-                                sortKey: _sortKey,
-                                sortAscending: _sortAscending,
-                                onHeroSetChanged: (next) => setState(() {
-                                  _selectedHeroTags
-                                    ..clear()
-                                    ..addAll(next);
-                                }),
-                                onTypeTagsSetChanged: (next) => setState(() {
-                                  _selectedTypeTags
-                                    ..clear()
-                                    ..addAll(next);
-                                }),
-                                onRaritySetChanged: (next) => setState(() {
-                                  _selectedRarities
-                                    ..clear()
-                                    ..addAll(next);
-                                }),
-                                onSizeSetChanged: (next) => setState(() {
-                                  _selectedSizes
-                                    ..clear()
-                                    ..addAll(next);
-                                }),
-                                onSortKeyChanged: (v) => setState(() => _sortKey = v),
-                                onSortDirectionToggle: () =>
-                                    setState(() => _sortAscending = !_sortAscending),
-                                onClearFilters: _hasActiveFilters ? _clearFilters : null,
-                              )
-                            else if (catSnapshot.hasError)
-                              _CatalogErrorState(
-                                onRetry: () => setState(() => _reloadKey++),
-                              )
-                            else
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 12),
-                                child: Center(child: CircularProgressIndicator()),
-                              ),
-                            const SizedBox(height: 8),
-                            Divider(height: 24, thickness: 1, color: _divider.withValues(alpha: 0.65)),
-                            Text(
-                              'Run history',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
+                                if (runsErrored) ...[
+                                  const SizedBox(height: 12),
+                                  Material(
+                                    color: _surfaceInner,
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Icon(
+                                            Icons.warning_amber_rounded,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .error,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              'Runs unavailable (${runSnapshot.error}). '
+                                              'Stats and run-history filter need run data.',
+                                              style: TextStyle(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .error,
+                                                height: 1.35,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                            ),
-                            const SizedBox(height: 8),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('Filter by run history'),
-                              subtitle: runsErrored
-                                  ? Text(
-                                      'Run data unavailable.',
-                                      style: TextStyle(fontSize: 12, color: _muted),
-                                    )
-                                  : null,
-                              value: _winFilterEnabled && !runsErrored,
-                              onChanged: runsErrored
-                                  ? null
-                                  : (v) {
-                                      setState(() {
-                                        _winFilterEnabled = v;
-                                        if (v) _minWins = 10;
-                                        if (!v) _perfectOnly = false;
-                                      });
-                                    },
-                            ),
-                            if (_winFilterEnabled && !runsErrored) ...[
-                              const SizedBox(height: 4),
-                              LabeledSliderRow(
-                                label: 'Min wins',
-                                value: _minWins,
-                                min: 0,
-                                max: 10,
-                                divisions: 10,
-                                onChanged: (x) {
-                                  setState(() {
-                                    _minWins = x.round();
-                                    if (_minWins < 10) _perfectOnly = false;
-                                  });
-                                },
-                              ),
-                              if (_minWins == 10) ...[
+                                ],
+                                const SizedBox(height: 16),
+                                if (catSnapshot.hasError)
+                                  _CatalogErrorState(
+                                    onRetry: () => setState(() {}),
+                                  )
+                                else if (!catSnapshot.hasData)
+                                  const Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 12),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                else
+                                  _CatalogAttributeFilters(
+                                    attributeHeroes: attributeHeroes,
+                                    attributeTypeTags: attributeTypeTags,
+                                    attributeRarities: attributeRarities,
+                                    attributeSizes: attributeSizes,
+                                    selectedHeroTags: _selectedHeroTags,
+                                    selectedTypeTags: _selectedTypeTags,
+                                    selectedRarities: _selectedRarities,
+                                    selectedSizes: _selectedSizes,
+                                    sortKey: _sortKey,
+                                    sortAscending: _sortAscending,
+                                    onHeroSetChanged: (next) => setState(() {
+                                      _selectedHeroTags
+                                        ..clear()
+                                        ..addAll(next);
+                                    }),
+                                    onTypeTagsSetChanged: (next) =>
+                                        setState(() {
+                                      _selectedTypeTags
+                                        ..clear()
+                                        ..addAll(next);
+                                    }),
+                                    onRaritySetChanged: (next) =>
+                                        setState(() {
+                                      _selectedRarities
+                                        ..clear()
+                                        ..addAll(next);
+                                    }),
+                                    onSizeSetChanged: (next) => setState(() {
+                                      _selectedSizes
+                                        ..clear()
+                                        ..addAll(next);
+                                    }),
+                                    onSortKeyChanged: (v) =>
+                                        setState(() => _sortKey = v),
+                                    onSortDirectionToggle: () => setState(
+                                      () => _sortAscending = !_sortAscending,
+                                    ),
+                                  ),
+                                const SizedBox(height: 8),
+                                Divider(
+                                  height: 24,
+                                  thickness: 1,
+                                  color:
+                                      _divider.withValues(alpha: 0.65),
+                                ),
+                                Text(
+                                  'Run history',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
                                 SwitchListTile(
                                   contentPadding: EdgeInsets.zero,
-                                  title: const Text('Perfect only'),
-                                  subtitle: const Text(
-                                    'Requires a perfect run (diamond).',
-                                    style: TextStyle(fontSize: 12, color: _muted),
-                                  ),
-                                  value: _perfectOnly,
-                                  onChanged: (v) =>
-                                      setState(() => _perfectOnly = v),
+                                  title: const Text('Filter by run history'),
+                                  subtitle: runsErrored
+                                      ? Text(
+                                          'Run data unavailable.',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: _muted,
+                                          ),
+                                        )
+                                      : null,
+                                  value: _winFilterEnabled && !runsErrored,
+                                  onChanged: runsErrored
+                                      ? null
+                                      : (v) {
+                                          setState(() {
+                                            _winFilterEnabled = v;
+                                            if (v) _minWins = 10;
+                                            if (!v) _perfectOnly = false;
+                                          });
+                                        },
                                 ),
+                                if (_winFilterEnabled && !runsErrored) ...[
+                                  const SizedBox(height: 4),
+                                  LabeledSliderRow(
+                                    label: 'Min wins',
+                                    value: _minWins,
+                                    min: 0,
+                                    max: 10,
+                                    divisions: 10,
+                                    onChanged: (x) {
+                                      setState(() {
+                                        _minWins = x.round();
+                                        if (_minWins < 10) _perfectOnly = false;
+                                      });
+                                    },
+                                  ),
+                                  if (_minWins == 10) ...[
+                                    SwitchListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      title: const Text('Perfect only'),
+                                      subtitle: const Text(
+                                        'Requires a perfect run (diamond).',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: _muted,
+                                        ),
+                                      ),
+                                      value: _perfectOnly,
+                                      onChanged: (v) => setState(
+                                        () => _perfectOnly = v,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ],
-                            ],
-                          ],
-                        )
-                      : const SizedBox.shrink(),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
                 ),
+
                 if (!_catalogControlsExpanded && runsErrored)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Material(
-                      color: _surfaceInner,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Runs unavailable (${runSnapshot.error}). '
-                                'Stats and run-history filter need run data.',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
-                                  height: 1.35,
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    sliver: sliverBox(
+                      Material(
+                        color: _surfaceInner,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Runs unavailable (${runSnapshot.error}). '
+                                  'Stats and run-history filter need run data.',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                    height: 1.35,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Catalog Items',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        catSnapshot.hasData ? '${catSnapshot.data!.length} items' : 'Loading…',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: _muted,
-                            ),
-                      ),
-                    ],
+
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  sliver: sliverBox(
+                    Row(
+                      children: [
+                        Text(
+                          'Catalog Items',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          catSnapshot.hasData ? '${catalog.length} items' : 'Loading…',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: _muted),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                _buildCatalogBody(
-                  context,
-                  catSnapshot: catSnapshot,
-                  runs: runs,
-                  stats: stats,
-                  runsErrored: runsErrored,
-                ),
+
+                if (catSnapshot.hasError)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    sliver: sliverBox(
+                      _CatalogErrorState(onRetry: () => setState(() {})),
+                    ),
+                  )
+                else if (!catSnapshot.hasData)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+                    sliver: sliverBox(
+                      const Center(child: CircularProgressIndicator()),
+                    ),
+                  )
+                else if (catalog.isEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    sliver: sliverBox(
+                      const _CatalogEmptyState(message: 'No catalog items.'),
+                    ),
+                  )
+                else if (filtered.isEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    sliver: sliverBox(
+                      _CatalogEmptyState(
+                        message: _searchQuery.trim().isEmpty
+                            ? 'No catalog items match your filters.'
+                            : "No results for '${_searchQuery.trim()}'.",
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final item = filtered[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _CatalogItemTile(
+                              key: ValueKey('catalog_item_${item.id}_$index'),
+                              item: item,
+                              stats: effectiveStats[item.id],
+                              runsDataAvailable: !runsErrored,
+                              qualifiedRunCount: winFilterActive
+                                  ? (qualifiedRunCountByItemId[item.id] ?? 0)
+                                  : (effectiveStats[item.id]?.runCount ?? 0),
+                              winFilterActive: winFilterActive,
+                            ),
+                          );
+                        },
+                        childCount: filtered.length,
+                      ),
+                    ),
+                  ),
               ],
             );
           },
@@ -529,83 +869,14 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildCatalogBody(
-    BuildContext context, {
-    required AsyncSnapshot<List<CatalogItem>> catSnapshot,
-    required List<RunRecord> runs,
-    required Map<String, ItemRunStats> stats,
-    required bool runsErrored,
-  }) {
-    if (catSnapshot.hasError) {
-      return _CatalogErrorState(
-        onRetry: () => setState(() => _reloadKey++),
-      );
-    }
-    if (!catSnapshot.hasData) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final catalog = catSnapshot.data ?? const <CatalogItem>[];
-    if (catalog.isEmpty) {
-      return const _CatalogEmptyState(
-        message:
-            'No catalog items.',
-      );
-    }
-
-    final effectiveRuns = runsErrored ? const <RunRecord>[] : runs;
-    final effectiveStats = runsErrored ? <String, ItemRunStats>{} : stats;
-
-    final filtered = _applyPipeline(
-      catalog: catalog,
-      runs: effectiveRuns,
-      stats: effectiveStats,
-      applyWinFilter: _winFilterEnabled && !runsErrored,
-    );
-
-    if (filtered.isEmpty) {
-      return _CatalogEmptyState(
-        message: _hasActiveFilters
-            ? 'No items match your search or filters.'
-            : 'No catalog items match your search.',
-      );
-    }
-
-    final minWinsForCount = _winFilterEnabled && !runsErrored ? _minWins : 0;
-    final perfectForCount = _winFilterEnabled && !runsErrored && _perfectOnly;
-
-    return Column(
-      children: filtered
-          .map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _CatalogItemTile(
-                item: item,
-                stats: effectiveStats[item.id],
-                runsDataAvailable: !runsErrored,
-                qualifiedRunCount: runsErrored
-                    ? 0
-                    : countRunsForItemWithWinCriteria(
-                        itemId: item.id,
-                        runs: effectiveRuns,
-                        minWins: minWinsForCount,
-                        perfectOnly: perfectForCount,
-                      ),
-                winFilterActive: _winFilterEnabled && !runsErrored,
-              ),
-            ),
-          )
-          .toList(growable: false),
-    );
-  }
 }
 
 class _CatalogAttributeFilters extends StatelessWidget {
   const _CatalogAttributeFilters({
-    required this.catalog,
+    required this.attributeHeroes,
+    required this.attributeTypeTags,
+    required this.attributeRarities,
+    required this.attributeSizes,
     required this.selectedHeroTags,
     required this.selectedTypeTags,
     required this.selectedRarities,
@@ -618,10 +889,12 @@ class _CatalogAttributeFilters extends StatelessWidget {
     required this.onSizeSetChanged,
     required this.onSortKeyChanged,
     required this.onSortDirectionToggle,
-    this.onClearFilters,
   });
 
-  final List<CatalogItem> catalog;
+  final List<String> attributeHeroes;
+  final List<String> attributeTypeTags;
+  final List<String> attributeRarities;
+  final List<String> attributeSizes;
   final Set<String> selectedHeroTags;
   final Set<String> selectedTypeTags;
   final Set<String> selectedRarities;
@@ -634,21 +907,13 @@ class _CatalogAttributeFilters extends StatelessWidget {
   final void Function(Set<String> value) onSizeSetChanged;
   final void Function(String value) onSortKeyChanged;
   final VoidCallback onSortDirectionToggle;
-  final VoidCallback? onClearFilters;
 
   @override
   Widget build(BuildContext context) {
-    final heroes = catalog.map((e) => e.heroTag).where((s) => s.isNotEmpty).toSet().toList()
-      ..sort();
-    final tags = <String>{};
-    for (final item in catalog) {
-      tags.addAll(item.typeTags);
-    }
-    final tagList = tags.toList()..sort();
-    final rarities = catalog.map((e) => e.startingRarity).where((s) => s.isNotEmpty).toSet().toList()
-      ..sort();
-    final sizes = catalog.map(normalizedCatalogSize).where((s) => s.isNotEmpty).toSet().toList()
-      ..sort();
+    final heroes = attributeHeroes;
+    final tagList = attributeTypeTags;
+    final rarities = attributeRarities;
+    final sizes = attributeSizes;
 
     final attributeSelections = selectedHeroTags.length +
         selectedTypeTags.length +
@@ -658,16 +923,6 @@ class _CatalogAttributeFilters extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (onClearFilters != null) ...[
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: onClearFilters,
-              child: const Text('Clear all'),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
         Row(
           children: [
             Text(
@@ -1095,6 +1350,7 @@ class _CatalogMultiSelectSheetState extends State<_CatalogMultiSelectSheet> {
 
 class _CatalogItemTile extends StatelessWidget {
   const _CatalogItemTile({
+    super.key,
     required this.item,
     this.stats,
     required this.runsDataAvailable,
@@ -1118,6 +1374,14 @@ class _CatalogItemTile extends StatelessWidget {
     final runCount = stats?.runCount ?? 0;
     final bestTier = stats?.bestTier ?? RunResultTier.defeat;
     final maxWins = stats?.maxWins ?? 0;
+    final thumbSlotHeight = 52.0;
+    final slotCount = switch (item.size.trim().toLowerCase()) {
+      'small' => 1,
+      'medium' => 2,
+      'large' => 3,
+      _ => 2,
+    };
+    final thumbSlotWidth = (thumbSlotHeight / 2) * slotCount;
     final tierForStyle =
         runCount == 0 ? RunResultTier.defeat : bestTier;
     final tierStyle = RunTierStyle.forTier(tierForStyle);
@@ -1125,95 +1389,160 @@ class _CatalogItemTile extends StatelessWidget {
         ? 'No runs yet'
         : runResultTierShortLabel(bestTier);
     final tags = item.typeTags.isEmpty ? 'No tags' : item.typeTags.join(', ');
+    final displayName = item.name.isEmpty ? item.id : item.name;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: _surfaceInner,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(width: 4, color: tierStyle.accentBar),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => CatalogItemDetailPage(
+                  item: item,
+                  stats: stats,
+                  runsDataAvailable: runsDataAvailable,
+                  qualifiedRunCount: qualifiedRunCount,
+                  winFilterActive: winFilterActive,
+                ),
+              ),
+            );
+          },
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: _surfaceInner,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _border),
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 4, color: tierStyle.accentBar),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: tierStyle.iconBackground,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: tierStyle.buildIcon(size: 22),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: thumbSlotWidth,
+                                height: thumbSlotHeight,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Container(color: tierStyle.iconBackground),
+                                      if (item.imageThumbUrl != null)
+                                        CachedNetworkImage(
+                                          imageUrl: item.imageThumbUrl!,
+                                          cacheKey:
+                                              'thumb_v3_${item.id}_${item.imageThumbUrl!.hashCode}',
+                                          httpHeaders: const {
+                                            'User-Agent':
+                                                'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                                          },
+                                          fit: BoxFit.contain,
+                                          alignment: Alignment.center,
+                                          placeholder: (_, __) =>
+                                              const SizedBox.shrink(),
+                                          errorWidget: (_, __, ___) =>
+                                              const SizedBox.shrink(),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            displayName,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  color: tierStyle.labelColor,
+                                                ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          width: 28,
+                                          height: 28,
+                                          decoration: BoxDecoration(
+                                            color: tierStyle.iconBackground,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: tierStyle.buildIcon(size: 16),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      tierTitle,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: const Color(0xFFC3B5A0),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.name.isEmpty ? item.id : item.name,
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        color: tierStyle.labelColor,
-                                      ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  tierTitle,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: const Color(0xFFC3B5A0),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                              ],
+                          const SizedBox(height: 10),
+                          _CatalogItemMetaCard(
+                            heroLine: '${item.heroTag.isEmpty ? 'Unknown hero' : item.heroTag} · '
+                                '${item.startingRarity.isEmpty ? 'Unknown rarity' : item.startingRarity} · '
+                                '${normalizedCatalogSize(item).isEmpty ? 'Unknown size' : normalizedCatalogSize(item)}',
+                            bestWinsText:
+                                runCount > 0 ? 'Best $maxWins wins' : null,
+                            runCountText: runsDataAvailable
+                                ? '$qualifiedRunCount ${qualifiedRunCount == 1 ? 'run' : 'runs'}'
+                                : null,
+                            tooltip: !runsDataAvailable
+                                ? null
+                                : winFilterActive
+                                    ? 'Number of saved runs that match your Run history filter above.'
+                                    : 'Times this item appeared in a saved run.',
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            tags,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFD0C0A8),
+                              height: 1.35,
+                              fontSize: 13,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      _CatalogItemMetaCard(
-                        heroLine: '${item.heroTag.isEmpty ? 'Unknown hero' : item.heroTag} · '
-                            '${item.startingRarity.isEmpty ? 'Unknown rarity' : item.startingRarity} · '
-                            '${normalizedCatalogSize(item).isEmpty ? 'Unknown size' : normalizedCatalogSize(item)}',
-                        bestWinsText:
-                            runCount > 0 ? 'Best $maxWins wins' : null,
-                        runCountText: runsDataAvailable
-                            ? '$qualifiedRunCount ${qualifiedRunCount == 1 ? 'run' : 'runs'}'
-                            : null,
-                        tooltip: !runsDataAvailable
-                            ? null
-                            : winFilterActive
-                                ? 'Number of saved runs that match your Run history filter above.'
-                                : 'Times this item appeared in a saved run.',
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        tags,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFD0C0A8),
-                          height: 1.35,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

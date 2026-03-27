@@ -45,6 +45,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
   @override
   Widget build(BuildContext context) {
     final tier = sessionController.challengeChecklistTier;
+    final bottomPad = MediaQuery.paddingOf(context).bottom + 28;
     if (widget.kind == ChallengeCategoryKind.fullCatalog) {
       return Scaffold(
         appBar: AppBar(title: const Text('Challenges')),
@@ -103,6 +104,12 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
                   stats: stats,
                   tier: tier,
                 );
+              case ChallengeCategoryKind.hiddenTypeTags:
+                subgroups = computeHiddenTypeTagSubgroupProgress(
+                  catalog: catalog,
+                  stats: stats,
+                  tier: tier,
+                );
               case ChallengeCategoryKind.sizes:
                 subgroups = computeSizeSubgroupProgress(
                   catalog: catalog,
@@ -122,7 +129,7 @@ class _ChallengeDetailPageState extends State<ChallengeDetailPage> {
             return Scaffold(
               appBar: AppBar(title: Text(title)),
               body: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
                 children: [
                   if (runsErrored)
                     Padding(

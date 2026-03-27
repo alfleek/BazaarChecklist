@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/features/build_input/build_input_page.dart';
+import 'package:mobile/features/builds/run_detail_page.dart';
 import 'package:mobile/features/runs/run_record.dart';
 import 'package:mobile/features/runs/run_result_tier.dart';
 import 'package:mobile/features/runs/run_tier_visual.dart';
@@ -71,6 +72,7 @@ class BuildListPage extends StatelessWidget {
               if (i > 0) const SizedBox(height: 10),
               _RunCard(
                 run: runs[i],
+                allRuns: runs,
                 isGuest: isGuest,
                 userId: userId,
               ),
@@ -236,11 +238,13 @@ class _ErrorCard extends StatelessWidget {
 class _RunCard extends StatelessWidget {
   const _RunCard({
     required this.run,
+    required this.allRuns,
     required this.isGuest,
     this.userId,
   });
 
   final RunRecord run;
+  final List<RunRecord> allRuns;
   final bool isGuest;
   final String? userId;
 
@@ -291,180 +295,193 @@ class _RunCard extends StatelessWidget {
 
     final heroAccent = _heroAccent(run.heroId);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: _surfaceInner,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(
+              builder: (_) => RunDetailPage(
+                run: run,
+                allRuns: allRuns,
+              ),
+            ),
+          );
+        },
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(width: 4, color: tierStyle.accentBar),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: _surfaceInner,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _border),
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 4, color: tierStyle.accentBar),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: tierStyle.iconBackground,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: tierStyle.buildIcon(size: 22),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        tierLabel,
-                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                              fontWeight: FontWeight.w800,
-                                              color: tierStyle.labelColor,
-                                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: tierStyle.iconBackground,
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        _formatDate(run.createdAt),
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                              color: const Color(0xFFC3B5A0),
-                                            ),
+                                      child: tierStyle.buildIcon(size: 22),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            tierLabel,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  color: tierStyle.labelColor,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            _formatDate(run.createdAt),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  color: const Color(0xFFC3B5A0),
+                                                ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                          PopupMenuButton<String>(
-                            tooltip: 'Run actions',
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(Icons.more_vert, color: Color(0xFFC3B5A0)),
-                            onSelected: (value) async {
-                  if (value == 'edit') {
-                    await Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => BuildInputPage(
-                          isGuest: isGuest,
-                          userId: userId,
-                          existingRun: run,
-                        ),
-                      ),
-                    );
-                  } else if (value == 'delete') {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Delete run?'),
-                        content: const Text(
-                          'This removes the run from your history. This cannot be undone.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(false),
-                            child: const Text('Cancel'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.of(ctx).pop(true),
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed != true || !context.mounted) return;
-                    final repo = createRunsRepository(
-                      isGuest: isGuest,
-                      userId: userId,
-                    );
-                    try {
-                      await repo.deleteRun(run.id);
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Run deleted.')),
-                      );
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Could not delete run: $e')),
-                      );
-                    }
-                  }
-                            },
-                            itemBuilder: (context) => const [
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Text('Edit'),
                               ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Delete'),
+                              PopupMenuButton<String>(
+                                tooltip: 'Run actions',
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(
+                                  Icons.more_vert,
+                                  color: Color(0xFFC3B5A0),
+                                ),
+                                onSelected: (value) async {
+                                  if (value == 'edit') {
+                                    await Navigator.of(context).push<void>(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => BuildInputPage(
+                                          isGuest: isGuest,
+                                          userId: userId,
+                                          existingRun: run,
+                                        ),
+                                      ),
+                                    );
+                                  } else if (value == 'delete') {
+                                    final confirmed = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Delete run?'),
+                                        content: const Text(
+                                          'This removes the run from your history. This cannot be undone.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(ctx).pop(false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () => Navigator.of(ctx).pop(true),
+                                            child: const Text('Delete'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirmed != true || !context.mounted) return;
+                                    final repo = createRunsRepository(
+                                      isGuest: isGuest,
+                                      userId: userId,
+                                    );
+                                    try {
+                                      await repo.deleteRun(run.id);
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Run deleted.')),
+                                      );
+                                    } catch (e) {
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Could not delete run: $e')),
+                                      );
+                                    }
+                                  }
+                                },
+                                itemBuilder: (context) => const [
+                                  PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _ChipLabel(
-                            icon: Icons.person_outline,
-                            text: run.heroId,
-                            bg: heroAccent.withValues(alpha: 0.18),
-                            border: heroAccent.withValues(alpha: 0.7),
-                            iconColor: heroAccent,
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _ChipLabel(
+                                icon: Icons.person_outline,
+                                text: run.heroId,
+                                bg: heroAccent.withValues(alpha: 0.18),
+                                border: heroAccent.withValues(alpha: 0.7),
+                                iconColor: heroAccent,
+                              ),
+                              _ChipLabel(icon: Icons.leaderboard, text: modeLabel),
+                              _ChipLabel(
+                                icon: Icons.stacked_line_chart,
+                                text: '${run.wins} wins',
+                              ),
+                              if (run.perfect)
+                                _ChipLabel(icon: Icons.diamond, text: 'Perfect'),
+                              _ChipLabel(
+                                icon: Icons.inventory_2_outlined,
+                                text: '$itemCount items',
+                              ),
+                            ],
                           ),
-                          _ChipLabel(
-                            icon: Icons.leaderboard,
-                            text: modeLabel,
-                          ),
-                          _ChipLabel(
-                            icon: Icons.stacked_line_chart,
-                            text: '${run.wins} wins',
-                          ),
-                          if (run.perfect)
-                            _ChipLabel(
-                              icon: Icons.diamond,
-                              text: 'Perfect',
+                          if (run.notes.trim().isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              run.notes.trim(),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFFD0C0A8),
+                                height: 1.35,
+                              ),
                             ),
-                          _ChipLabel(
-                            icon: Icons.inventory_2_outlined,
-                            text: '$itemCount items',
-                          ),
+                          ],
                         ],
                       ),
-                      if (run.notes.trim().isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Text(
-                          run.notes.trim(),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFFD0C0A8),
-                            height: 1.35,
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
