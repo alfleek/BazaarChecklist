@@ -247,6 +247,7 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
 
   const url = typeof args.url === 'string' ? args.url : DEFAULT_URL;
+  const buildIdArg = typeof args.buildId === 'string' ? args.buildId.trim() : '';
   const inspectOnly = args.inspect !== undefined;
   const sampleCount = typeof args.sample === 'string' ? Number(args.sample) : 3;
   const cacheBase = path.join(__dirname, '..', '.cache', 'game-builds');
@@ -259,30 +260,54 @@ async function main() {
 
   if (localCardsJsonPath) {
     cardsJsonPath = path.resolve(localCardsJsonPath);
+    snapshot = { cardsJsonPath, local: true };
   } else {
-    const tmpZipPath = path.join(cacheBase, 'download_buildx64.zip');
-    console.log(`Downloading build zip: ${url}`);
-    await downloadFile(url, tmpZipPath);
-    const buildId = await sha256File(tmpZipPath);
-    const buildDir = path.join(cacheBase, buildId);
-    ensureDir(buildDir);
-    const zipPath = path.join(buildDir, 'buildx64.zip');
-    if (!fs.existsSync(zipPath)) fs.copyFileSync(tmpZipPath, zipPath);
-
-    cardsJsonPath = path.join(buildDir, 'cards.json');
-    const reportPath = path.join(buildDir, 'schema_report.json');
-
-    if (!fs.existsSync(cardsJsonPath)) {
-      console.log('Extracting cards.json from zip...');
-      const zip = new AdmZip(zipPath);
-      const entry = findCardsJsonEntry(zip);
-      const out = zip.readFile(entry);
-      fs.writeFileSync(cardsJsonPath, out);
-      console.log(`Extracted to ${cardsJsonPath}`);
+    let buildId = buildIdArg;
+    let buildDir = null;
+    let zipPath = null;
+    if (buildIdArg) {
+      buildDir = path.join(cacheBase, buildIdArg);
+      ensureDir(buildDir);
+      zipPath = path.join(buildDir, 'buildx64.zip');
+      cardsJsonPath = path.join(buildDir, 'cards.json');
+      if (!fs.existsSync(cardsJsonPath)) {
+        if (!fs.existsSync(zipPath)) {
+          throw new Error(
+            `buildId provided but missing cached zip/cards.json for ${buildIdArg}.`,
+          );
+        }
+        console.log('Extracting cards.json from cached zip...');
+        const zip = new AdmZip(zipPath);
+        const entry = findCardsJsonEntry(zip);
+        const out = zip.readFile(entry);
+        fs.writeFileSync(cardsJsonPath, out);
+      } else {
+        console.log(`Using cached extracted cards.json: ${cardsJsonPath}`);
+      }
     } else {
-      console.log(`Using cached extracted cards.json: ${cardsJsonPath}`);
+      const tmpZipPath = path.join(cacheBase, 'download_buildx64.zip');
+      console.log(`Downloading build zip: ${url}`);
+      await downloadFile(url, tmpZipPath);
+      buildId = await sha256File(tmpZipPath);
+      buildDir = path.join(cacheBase, buildId);
+      ensureDir(buildDir);
+      zipPath = path.join(buildDir, 'buildx64.zip');
+      if (!fs.existsSync(zipPath)) fs.copyFileSync(tmpZipPath, zipPath);
+
+      cardsJsonPath = path.join(buildDir, 'cards.json');
+      if (!fs.existsSync(cardsJsonPath)) {
+        console.log('Extracting cards.json from zip...');
+        const zip = new AdmZip(zipPath);
+        const entry = findCardsJsonEntry(zip);
+        const out = zip.readFile(entry);
+        fs.writeFileSync(cardsJsonPath, out);
+        console.log(`Extracted to ${cardsJsonPath}`);
+      } else {
+        console.log(`Using cached extracted cards.json: ${cardsJsonPath}`);
+      }
     }
 
+    const reportPath = path.join(buildDir, 'schema_report.json');
     snapshot = {
       buildId,
       url,

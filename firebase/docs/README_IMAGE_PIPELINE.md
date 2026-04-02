@@ -34,6 +34,9 @@ These are the scripts we keep and support in `firebase/scripts/`:
 - `seed_catalog_from_game.js`
   - Uploads local PNGs from manifests to Firebase Storage and writes signed URLs to
     Firestore fields (`imageThumbUrl`, `imageFullUrl`).
+- `merge_image_manifests.js`
+  - Merges base extraction manifests with deterministic artfix manifests so forced
+    corrections survive future migrations.
 - `find_external_pathid_bundle.py`
   - Brute-force pathId resolver across catalog-derived bundles.
 - `trace_octopus_maintex.py`
@@ -75,6 +78,42 @@ Operational fallback:
   future build or we obtain a verified manual source asset.
 
 ## Standard Runbook
+
+### 0) Unified review-first pipeline (recommended)
+
+Run from `firebase/`:
+
+```bash
+npm run pipeline:game-update -- --mode review
+```
+
+This command fetches/parses the latest game build and writes:
+
+- `schema_report.json`
+- `catalog_review_report.json`
+- `catalog_review_report.md`
+
+for manual review before any production writes.
+
+To include image extraction in that same run:
+
+```bash
+npm run pipeline:game-update -- --mode review --includeImages true
+```
+
+To apply after review approval:
+
+```bash
+npm run pipeline:game-update -- --mode apply --projectId <projectId> --serviceAccount ./service-account.local.json --confirmApply "I_UNDERSTAND"
+```
+
+`apply` mode still runs review first, then:
+
+1. extracts images,
+2. exports forced overrides (`forcedAssetByItemId`),
+3. merges artfix manifests over base manifests,
+4. seeds Firestore/Storage,
+5. applies controlled fallbacks and inactive-name policy.
 
 ### A) Re-export forced fixes
 
@@ -124,14 +163,45 @@ node scripts/validate_item_image_parity.js \
 Keep:
 
 - Canonical build snapshot directory above (including downloaded bundles).
+- Latest build snapshot.
+- Last successfully seeded build snapshot (tracked by `.cache/game-builds/_metadata/last_seeded_build.json`).
 - Final trace/report artifacts needed for future debugging:
   - `octopus_trace_report.json`
   - `pathid_scan_progress.json` / `pathid_scan_found.json` (if present)
   - final manifests used for seeded corrections
+- For full reseed reproducibility, keep both:
+  - manifest files used in the last successful apply
+  - all PNGs referenced by those manifest `imagePath` values
 
 Safe to purge when space is needed:
 
 - Duplicate temporary export directories from abandoned trials.
 - Intermediate scratch outputs not tied to current seeded state.
 - Old one-off debugging reports that are superseded by canonical trace/report files.
+
+Use the cleanup tool in dry-run mode first:
+
+```bash
+npm run cleanup:game-cache
+```
+
+Deep cleanup preview (stale `exported_item_*` trial outputs inside kept builds):
+
+```bash
+npm run cleanup:game-cache:deep
+```
+
+Deep mode also removes non-essential report files, while preserving latest review reports and canonical forensic reports.
+
+Apply deletions only after verifying the list:
+
+```bash
+npm run cleanup:game-cache -- --apply
+```
+
+Deep cleanup apply:
+
+```bash
+npm run cleanup:game-cache -- --deep --apply
+```
 

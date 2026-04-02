@@ -11,7 +11,7 @@ Aligned with a **short MVP window** and **mobile-first** delivery. Phases are se
 | **4 — Auth + cloud** | Account sync | Sign-in; runs in `users/{uid}/runs` (including run result tiers); policy for guest merge implemented |
 | **5 — Web + hosting** | Parity + deploy | Stretch: web build; Hosting if time allows |
 
-**Stretch**: Web deploy polish, richer catalog fields (e.g. `imageUrl`), enchanted-per-item flags. **Challenges** checklist is implemented client-side; server-side gamification beyond runs is still a stretch.
+**Stretch**: Web deploy polish, richer catalog polish around `imageThumbUrl`/`imageFullUrl` handling, enchanted-per-item flags. **Challenges** checklist is implemented client-side; server-side gamification beyond runs is still a stretch.
 
 ## Class demo script (template)
 

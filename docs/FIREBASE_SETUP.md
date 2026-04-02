@@ -29,7 +29,8 @@ Create documents under `catalog_items/{itemId}` with these baseline fields:
 - `size` (number)
 - `active` (bool, set `true` for visible items)
 - `updatedAt` (timestamp, optional)
-- `imageUrl` (string, optional)
+- `imageThumbUrl` (string, optional)
+- `imageFullUrl` (string, optional)
 
 Example document (`catalog_items/vanessa_boiling_kettle`):
 
@@ -56,7 +57,10 @@ npm install
 npm run seed:firestore -- --projectId <projectId> --serviceAccount ./service-account.local.json
 ```
 
-For catalog/image extraction and upload workflows, follow `firebase/docs/README_IMAGE_PIPELINE.md`.
+For catalog/image extraction and upload workflows, follow:
+
+- `firebase/docs/GAME_UPDATE_PIPELINE.md` (review-first unified command)
+- `firebase/docs/README_IMAGE_PIPELINE.md` (image-focused deep dive)
 
 ## Files that must stay out of git (typical)
 

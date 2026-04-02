@@ -121,7 +121,8 @@ Each catalog item should include:
 
 Stretch:
 
-- `imageUrl`.
+- `imageThumbUrl`.
+- `imageFullUrl`.
 
 ## Non-goals (v1)
 

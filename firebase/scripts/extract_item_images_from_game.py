@@ -60,6 +60,7 @@ NAME_MISMATCH_OVERRIDES: Dict[str, str] = {
     # Oh hell yeah we're mapping to a Cyrillic character
     "Cleaver": "Сleaver",
     "Soulstone": "SoulStone",
+    "DooltronMainframe": "DootronMainframe",
     "SandsOfTime": "TomeOfTime",
     "EthergyConduit": "LargeRelic",
     "CEGreenPiggles": "PremiumCollectorsEditionPiggles_Green",
@@ -195,12 +196,14 @@ def pick_card_bundle_url_for_hero(dependencies: list, hero_lower: str) -> Option
 
 def choose_texture_name(texture_names: List[str], name_candidates: List[str]) -> Optional[str]:
     needles = [n.lower() for n in name_candidates if n]
+    compact_needles = [compact_name(n).lower() for n in name_candidates if n]
     if not needles:
         return None
     candidates = []
     for nm in texture_names:
         nl = nm.lower()
-        if not any(needle in nl for needle in needles):
+        compact_nl = compact_name(nl).lower()
+        if not any((needle in nl) or (needle in compact_nl) for needle in needles + compact_needles):
             continue
         score = 0
         # Prefer the main diffuse/base art texture.
@@ -237,6 +240,7 @@ def choose_mask_name(texture_names: List[str], name_candidates: List[str]) -> Op
     We prefer non-enchantment/base masks (i.e. avoid `FX_` prefixed masks) when possible.
     """
     needles = [n.lower() for n in name_candidates if n]
+    compact_needles = [compact_name(n).lower() for n in name_candidates if n]
     if not needles:
         return None
     best_cf: Optional[str] = None
@@ -246,7 +250,8 @@ def choose_mask_name(texture_names: List[str], name_candidates: List[str]) -> Op
 
     for nm in texture_names:
         nl = nm.lower()
-        if not any(needle in nl for needle in needles):
+        compact_nl = compact_name(nl).lower()
+        if not any((needle in nl) or (needle in compact_nl) for needle in needles + compact_needles):
             continue
         if "mask" not in nl:
             continue
@@ -351,12 +356,14 @@ def cover_to_size(img: Image.Image, target_size: Tuple[int, int]) -> Image.Image
 
 def score_texture_bundle_matches(texture_names: List[str], name_candidates: List[str]) -> int:
     needles = [n.lower() for n in name_candidates if n]
+    compact_needles = [compact_name(n).lower() for n in name_candidates if n]
     if not needles:
         return 0
     score = 0
     for nm in texture_names:
         nl = nm.lower()
-        if not any(needle in nl for needle in needles):
+        compact_nl = compact_name(nl).lower()
+        if not any((needle in nl) or (needle in compact_nl) for needle in needles + compact_needles):
             continue
         if "mask" in nl or "enchant" in nl or "enchantment" in nl:
             score -= 200

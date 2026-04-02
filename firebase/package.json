@@ -6,7 +6,17 @@
   "scripts": {
     "seed:firestore": "node scripts/seed_firestore.js",
     "inspect:cards": "node scripts/inspect_cards_json.js",
-    "seed:catalog-from-game": "node scripts/seed_catalog_from_game.js"
+    "seed:catalog-from-game": "node scripts/seed_catalog_from_game.js",
+    "extract:images": "python scripts/extract_item_images_from_game.py",
+    "export:images-by-asset": "python scripts/export_item_images_by_asset_name.py",
+    "fallbacks:apply": "node scripts/apply_item_art_fallbacks.js",
+    "validate:image-parity": "node scripts/validate_item_image_parity.js",
+    "merge:image-manifests": "node scripts/merge_image_manifests.js",
+    "report:catalog-review": "node scripts/generate_catalog_review_report.js",
+    "cleanup:game-cache": "node scripts/cleanup_game_build_cache.js",
+    "cleanup:game-cache:deep": "node scripts/cleanup_game_build_cache.js --deep",
+    "pipeline:game-update": "node scripts/run_game_update_pipeline.js",
+    "pipeline:game-update:review": "node scripts/run_game_update_pipeline.js --mode review"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
