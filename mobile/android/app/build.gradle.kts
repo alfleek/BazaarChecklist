@@ -6,6 +6,20 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+
+// Loads Android release signing credentials from a local-only `key.properties`
+// file (kept out of git). Play Store uploads require a real release keystore.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+// Only fail when the invoked Gradle tasks are actually release-related.
+val isReleaseBuild = gradle.startParameter.taskNames.any { task ->
+    task.lowercase().contains("release")
+}
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+}
+
 android {
     namespace = "com.checklist.bazaar"
     compileSdk = flutter.compileSdkVersion
@@ -33,9 +47,30 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (!keystorePropertiesFile.exists()) {
+                if (isReleaseBuild) {
+                    throw GradleException(
+                        "Missing key.properties for Android release signing.\n" +
+                        "Create `mobile/android/key.properties` (gitignored) and point it at your keystore,\n" +
+                        "then retry: Flutter release build / Play upload."
+                    )
+                } else {
+                    // Allows local builds when release credentials are not configured yet.
+                    signingConfig = signingConfigs.getByName("debug")
+                }
+            } else {
+                signingConfig = signingConfigs.create("release") {
+                    // Typical `key.properties` values (gitignored):
+                    // storePassword=...
+                    // keyPassword=...
+                    // keyAlias=...
+                    // storeFile=upload-keystore.jks
+                    storeFile = file(keystoreProperties["storeFile"].toString())
+                    storePassword = keystoreProperties["storePassword"].toString()
+                    keyAlias = keystoreProperties["keyAlias"].toString()
+                    keyPassword = keystoreProperties["keyPassword"].toString()
+                }
+            }
         }
     }
 }
