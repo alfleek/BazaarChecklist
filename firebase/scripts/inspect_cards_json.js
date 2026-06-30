@@ -3,12 +3,80 @@ const fs = require('node:fs');
 const path = require('node:path');
 const https = require('node:https');
 const crypto = require('node:crypto');
+const { spawnSync } = require('node:child_process');
 
 const AdmZip = require('adm-zip');
 
 const DEFAULT_URL =
   'https://data.playthebazaar.com/game/windows/buildx64.zip';
 const CARDS_JSON_REL_PATH = 'TheBazaar_Data/StreamingAssets/cards.json';
+const GAME_DATA_DB_ZIP_REL_PATH = 'TheBazaar_Data/StreamingAssets/GameData.db.zip';
+
+function getPythonCommand() {
+  return process.platform === 'win32' ? 'py' : 'python';
+}
+
+function extractCardsFromGameDataDb(zip, buildDir, cardsJsonPath) {
+  const entries = zip.getEntries();
+  const dbZipEntry = entries.find((e) => {
+    const n = e.entryName.replaceAll('\\', '/');
+    return n === GAME_DATA_DB_ZIP_REL_PATH || n.endsWith(`/${GAME_DATA_DB_ZIP_REL_PATH}`);
+  });
+  if (!dbZipEntry) {
+    throw new Error(
+      `Neither ${CARDS_JSON_REL_PATH} nor ${GAME_DATA_DB_ZIP_REL_PATH} found in build ZIP.`,
+    );
+  }
+
+  console.log('Found GameData.db.zip — extracting SQLite database...');
+  const dbZipBuf = zip.readFile(dbZipEntry);
+  const innerZip = new AdmZip(dbZipBuf);
+  const dbEntry = innerZip.getEntries().find((e) => e.entryName.toLowerCase().endsWith('.db'));
+  if (!dbEntry) throw new Error('No .db file found inside GameData.db.zip');
+
+  const dbBuf = innerZip.readFile(dbEntry);
+  const dbPath = path.join(buildDir, 'GameData.db');
+  fs.writeFileSync(dbPath, dbBuf);
+  console.log(`Extracted GameData.db (${dbBuf.length} bytes) to ${dbPath}`);
+
+  const pyScript = path.join(buildDir, '_sqlite_to_cards_json.py');
+  fs.writeFileSync(pyScript, [
+    'import sqlite3, json, sys',
+    'db_path, out_path = sys.argv[1], sys.argv[2]',
+    'conn = sqlite3.connect(db_path)',
+    'cards = [json.loads(row[1]) for row in conn.execute("SELECT Id, Data FROM cards ORDER BY Id")]',
+    'conn.close()',
+    'version_key = cards[0].get("Version", "5.0.0") if cards else "5.0.0"',
+    'with open(out_path, "w", encoding="utf-8") as f:',
+    '    json.dump({version_key: cards}, f)',
+    'print(f"Exported {len(cards)} cards from SQLite (version key: {version_key})")',
+  ].join('\n'));
+
+  const result = spawnSync(getPythonCommand(), [pyScript, dbPath, cardsJsonPath], {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
+  if (result.status !== 0) throw new Error('Failed to export SQLite cards to JSON');
+}
+
+function ensureCardsJson(zip, buildDir, cardsJsonPath) {
+  if (fs.existsSync(cardsJsonPath)) {
+    console.log(`Using cached cards.json: ${cardsJsonPath}`);
+    return;
+  }
+  let entry = null;
+  try {
+    entry = findCardsJsonEntry(zip);
+  } catch (_) {
+    // Fall through to new SQLite format.
+  }
+  if (entry) {
+    fs.writeFileSync(cardsJsonPath, zip.readFile(entry));
+    console.log(`Extracted cards.json to ${cardsJsonPath}`);
+  } else {
+    extractCardsFromGameDataDb(zip, buildDir, cardsJsonPath);
+  }
+}
 
 function parseArgs(argv) {
   const args = {};
@@ -276,11 +344,8 @@ async function main() {
             `buildId provided but missing cached zip/cards.json for ${buildIdArg}.`,
           );
         }
-        console.log('Extracting cards.json from cached zip...');
         const zip = new AdmZip(zipPath);
-        const entry = findCardsJsonEntry(zip);
-        const out = zip.readFile(entry);
-        fs.writeFileSync(cardsJsonPath, out);
+        ensureCardsJson(zip, buildDir, cardsJsonPath);
       } else {
         console.log(`Using cached extracted cards.json: ${cardsJsonPath}`);
       }
@@ -295,16 +360,8 @@ async function main() {
       if (!fs.existsSync(zipPath)) fs.copyFileSync(tmpZipPath, zipPath);
 
       cardsJsonPath = path.join(buildDir, 'cards.json');
-      if (!fs.existsSync(cardsJsonPath)) {
-        console.log('Extracting cards.json from zip...');
-        const zip = new AdmZip(zipPath);
-        const entry = findCardsJsonEntry(zip);
-        const out = zip.readFile(entry);
-        fs.writeFileSync(cardsJsonPath, out);
-        console.log(`Extracted to ${cardsJsonPath}`);
-      } else {
-        console.log(`Using cached extracted cards.json: ${cardsJsonPath}`);
-      }
+      const zip = new AdmZip(zipPath);
+      ensureCardsJson(zip, buildDir, cardsJsonPath);
     }
 
     const reportPath = path.join(buildDir, 'schema_report.json');

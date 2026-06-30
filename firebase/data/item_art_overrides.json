@@ -8,7 +8,9 @@
     "16667da1-b904-4a3f-a1b5-a18fe4e6705a": "CF_L_JUL_Oven_D",
     "7fa2b9c8-f038-44f9-8143-a4f8ee7f34bf": "CF_S_PYG_Piggles_D",
     "9131cedf-e5e7-4a23-a90e-2576048419e8": "CF_M_DOO_WeaponizedCore",
-    "2705353a-b8ec-47f0-acd9-d641dd13d6d0": "CF_M_KAR_Bagpipe_D"
+    "2705353a-b8ec-47f0-acd9-d641dd13d6d0": "CF_M_KAR_Bagpipe_D",
+    "23552158-d90a-4a33-afdf-6b27152d6614": "CF_S_NEU_Coupon_2_D",
+    "3174b74a-9e67-4db7-ba98-0d4935b2586d": "CF_S_NEU_Coupon_D"
   },
   "disableImageForItemIds": [
     "82d41afc-d1a9-41ee-a03d-fd9305bef8b5"
