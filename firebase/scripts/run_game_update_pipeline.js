@@ -322,7 +322,7 @@ Defaults:
   if (typeof args.signedUrlDays === 'string' && args.signedUrlDays.trim()) {
     seedArgs.push('--signedUrlDays', args.signedUrlDays.trim());
   }
-  if (args.deactivateMissing === true) {
+  if (parseBool(args, 'deactivateMissing', false)) {
     seedArgs.push('--deactivateMissing');
   }
 

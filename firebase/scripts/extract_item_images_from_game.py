@@ -488,9 +488,11 @@ def main() -> None:
     # Parse Addressables catalog once.
     if args.verbose:
         print("Parsing catalog.bin...")
-    cat = AT.parse_binary(open(catalog_bin_path, "rb").read())
+    with open(catalog_bin_path, "rb") as _f:
+        cat = AT.parse_binary(_f.read())
 
-    cards_json = json.load(open(cards_json_out, "r", encoding="utf-8"))
+    with open(cards_json_out, "r", encoding="utf-8") as _f:
+        cards_json = json.load(_f)
     items_cards = normalize_cards_version(cards_json)
 
     # Load initial card candidates (Type=Item, single hero).

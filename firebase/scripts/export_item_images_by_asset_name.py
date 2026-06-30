@@ -104,19 +104,22 @@ def main() -> None:
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     build_dir = os.path.join(repo_root, ".cache", "game-builds", args.buildId)
 
-    cards = json.load(open(os.path.join(build_dir, "cards.json"), "r", encoding="utf-8"))
+    with open(os.path.join(build_dir, "cards.json"), "r", encoding="utf-8") as _f:
+        cards = json.load(_f)
     items = normalize_cards_version(cards)
     by_id = {
         c.get("Id"): c
         for c in items
         if isinstance(c, dict) and isinstance(c.get("Id"), str)
     }
-    cat = AT.parse_binary(open(os.path.join(build_dir, "catalog.bin"), "rb").read())
+    with open(os.path.join(build_dir, "catalog.bin"), "rb") as _f:
+        cat = AT.parse_binary(_f.read())
 
     forced_asset_by_item_id: Dict[str, str] = {}
     overrides_file = os.path.abspath(args.overridesFile)
     if os.path.exists(overrides_file):
-        parsed = json.load(open(overrides_file, "r", encoding="utf-8"))
+        with open(overrides_file, "r", encoding="utf-8") as _f:
+            parsed = json.load(_f)
         forced_asset_by_item_id = {
             k: v
             for (k, v) in (parsed.get("forcedAssetByItemId") or {}).items()
@@ -277,26 +280,28 @@ def main() -> None:
             "pass": "pass5_artfix",
         }
 
-    json.dump(
-        {
-            "manifest": thumb_manifest,
-            "failedItemIds": failed,
-            "forcedCount": len(forced_asset_by_item_id),
-            "recoveredCount": len(thumb_manifest),
-        },
-        open(os.path.join(out_thumb_dir, "manifest.json"), "w", encoding="utf-8"),
-        indent=2,
-    )
-    json.dump(
-        {
-            "manifest": full_manifest,
-            "failedItemIds": failed,
-            "forcedCount": len(forced_asset_by_item_id),
-            "recoveredCount": len(full_manifest),
-        },
-        open(os.path.join(out_full_dir, "manifest.json"), "w", encoding="utf-8"),
-        indent=2,
-    )
+    with open(os.path.join(out_thumb_dir, "manifest.json"), "w", encoding="utf-8") as _f:
+        json.dump(
+            {
+                "manifest": thumb_manifest,
+                "failedItemIds": failed,
+                "forcedCount": len(forced_asset_by_item_id),
+                "recoveredCount": len(thumb_manifest),
+            },
+            _f,
+            indent=2,
+        )
+    with open(os.path.join(out_full_dir, "manifest.json"), "w", encoding="utf-8") as _f:
+        json.dump(
+            {
+                "manifest": full_manifest,
+                "failedItemIds": failed,
+                "forcedCount": len(forced_asset_by_item_id),
+                "recoveredCount": len(full_manifest),
+            },
+            _f,
+            indent=2,
+        )
 
     print("pass5_artfix export done")
     print("forced:", len(forced_asset_by_item_id))
