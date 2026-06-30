@@ -53,23 +53,23 @@ function sha256File(filePath) {
 function downloadFile(url, outPath) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(outPath);
+    const cleanup = () => {
+      try { file.close(); } catch (_) {}
+      try { fs.unlinkSync(outPath); } catch (_) {}
+    };
     https
       .get(url, (res) => {
         if (res.statusCode !== 200) {
-          reject(
-            new Error(
-              `Download failed: ${url} status=${res.statusCode}`,
-            ),
-          );
+          cleanup();
+          reject(new Error(`Download failed: ${url} status=${res.statusCode}`));
           res.resume();
           return;
         }
         res.pipe(file);
-        file.on('finish', () => {
-          file.close(() => resolve());
-        });
+        file.on('finish', () => file.close(() => resolve()));
+        file.on('error', (err) => { cleanup(); reject(err); });
       })
-      .on('error', (err) => reject(err));
+      .on('error', (err) => { cleanup(); reject(err); });
   });
 }
 
@@ -183,6 +183,12 @@ Examples:
   const limit = typeof args.limit === 'string' ? Number(args.limit) : undefined;
   const deactivateMissing = args.deactivateMissing === true;
 
+  if (deactivateMissing && limit !== undefined) {
+    throw new Error(
+      '--deactivateMissing cannot be combined with --limit: only the limited subset would be considered "present", deactivating the rest of the catalog.',
+    );
+  }
+
   const cacheBase = path.join(__dirname, '..', '.cache', 'game-builds');
   ensureDir(cacheBase);
 
@@ -226,15 +232,18 @@ Examples:
   const json = JSON.parse(jsonText);
 
   const topKeys = Object.keys(json);
-  // Current schema uses a version string key that holds the card array.
-  const versionKey = topKeys.find((k) => Array.isArray(json[k]));
-  if (!versionKey) {
+  const arrayKeys = topKeys.filter((k) => Array.isArray(json[k]));
+  if (arrayKeys.length === 0) {
     throw new Error(
-      `cards.json did not contain an array at a top-level key. keys=${topKeys.join(
-        ',',
-      )}`,
+      `cards.json did not contain an array at a top-level key. keys=${topKeys.join(',')}`,
     );
   }
+  if (arrayKeys.length > 1) {
+    console.warn(
+      `WARNING: cards.json has multiple top-level array keys: [${arrayKeys.join(', ')}]. Using first: "${arrayKeys[0]}". Verify this is the correct cards array.`,
+    );
+  }
+  const versionKey = arrayKeys[0];
   const cards = json[versionKey];
   console.log(`cards array count: ${cards.length} (from key: ${versionKey})`);
 

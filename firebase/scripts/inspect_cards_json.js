@@ -49,23 +49,23 @@ function sha256File(filePath) {
 function downloadFile(url, outPath) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(outPath);
+    const cleanup = () => {
+      try { file.close(); } catch (_) {}
+      try { fs.unlinkSync(outPath); } catch (_) {}
+    };
     https
       .get(url, (res) => {
         if (res.statusCode !== 200) {
-          reject(
-            new Error(
-              `Download failed: ${url} status=${res.statusCode}`,
-            ),
-          );
+          cleanup();
+          reject(new Error(`Download failed: ${url} status=${res.statusCode}`));
           res.resume();
           return;
         }
         res.pipe(file);
-        file.on('finish', () => {
-          file.close(() => resolve());
-        });
+        file.on('finish', () => file.close(() => resolve()));
+        file.on('error', (err) => { cleanup(); reject(err); });
       })
-      .on('error', (err) => reject(err));
+      .on('error', (err) => { cleanup(); reject(err); });
   });
 }
 
@@ -130,7 +130,7 @@ function normalizeToArrayOfCards(json) {
   for (const [k, v] of Object.entries(json)) {
     if (!Array.isArray(v) || v.length === 0) continue;
     if (!v[0] || typeof v[0] !== 'object' || Array.isArray(v[0])) continue;
-    const sampleObj = v[Math.min(0, v.length - 1)];
+    const sampleObj = v[Math.floor((v.length - 1) / 2)];
     const score = scoreCardObj(sampleObj) + Math.log10(v.length + 1);
     if (!best || score > best.score) best = { key: k, score };
   }
