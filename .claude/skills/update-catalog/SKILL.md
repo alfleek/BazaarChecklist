@@ -83,7 +83,7 @@ If the user says **yes**: proceed to Step 3.
 Run from `firebase/`:
 
 ```bash
-npm run pipeline:game-update -- --mode apply --projectId bazaarchecklist-f55e5 --serviceAccount ./service-account.local.json --confirmApply "I_UNDERSTAND"
+npm run pipeline:game-update -- --mode apply --projectId bazaarchecklist-f55e5 --serviceAccount ./service-account.local.json --storageBucket bazaarchecklist-f55e5.firebasestorage.app --confirmApply "I_UNDERSTAND"
 ```
 
 This will:

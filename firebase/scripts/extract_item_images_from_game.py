@@ -469,12 +469,39 @@ def main() -> None:
     if not os.path.exists(cards_json_out):
         ensure_dir(build_dir)
         with zipfile.ZipFile(zip_path, "r") as z:
+            names = z.namelist()
             wanted_cards = "TheBazaar_Data/StreamingAssets/cards.json"
-            # Normalize entry names.
-            entry = next(e for e in z.namelist() if e.replace("\\", "/").endswith(wanted_cards))
-            out_bytes = z.read(entry)
-            with open(cards_json_out, "wb") as f:
-                f.write(out_bytes)
+            cards_entry = next((e for e in names if e.replace("\\", "/").endswith(wanted_cards)), None)
+            if cards_entry:
+                out_bytes = z.read(cards_entry)
+                with open(cards_json_out, "wb") as f:
+                    f.write(out_bytes)
+            else:
+                # New format: card data moved to SQLite database.
+                wanted_db_zip = "TheBazaar_Data/StreamingAssets/GameData.db.zip"
+                db_zip_entry = next(
+                    (e for e in names if e.replace("\\", "/").endswith(wanted_db_zip)), None
+                )
+                if not db_zip_entry:
+                    raise RuntimeError(f"Neither {wanted_cards} nor {wanted_db_zip} found in build ZIP")
+                db_zip_bytes = z.read(db_zip_entry)
+
+            import io
+            if not cards_entry:
+                db_path = os.path.join(build_dir, "GameData.db")
+                with zipfile.ZipFile(io.BytesIO(db_zip_bytes)) as inner:
+                    db_entry = next(e for e in inner.namelist() if e.lower().endswith(".db"))
+                    with inner.open(db_entry) as db_src, open(db_path, "wb") as db_dst:
+                        db_dst.write(db_src.read())
+                print(f"Extracted GameData.db to {db_path}")
+                import sqlite3
+                conn = sqlite3.connect(db_path)
+                cards = [json.loads(row[1]) for row in conn.execute("SELECT Id, Data FROM cards ORDER BY Id")]
+                conn.close()
+                version_key = cards[0].get("Version", "5.0.0") if cards else "5.0.0"
+                with open(cards_json_out, "w", encoding="utf-8") as f:
+                    json.dump({version_key: cards}, f)
+                print(f"Exported {len(cards)} cards from SQLite (version key: {version_key})")
 
     catalog_bin_path = os.path.join(build_dir, "catalog.bin")
     if not os.path.exists(catalog_bin_path):
