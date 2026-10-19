@@ -1,12 +1,11 @@
 {
-    "name": "mobile",
-    "short_name": "mobile",
+    "name": "BazaarChecklist",
+    "short_name": "BazaarChecklist",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#120A0B",
     "theme_color": "#120A0B",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "description": "Track winning runs and item progress in The Bazaar.",
     "prefer_related_applications": false,
     "icons": [
         {

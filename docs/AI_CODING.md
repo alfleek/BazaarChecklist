@@ -7,7 +7,24 @@ Guidance for humans and Cursor when implementing BazaarChecklist.
 - Flutter package: [mobile/](mobile/) (`pubspec.yaml` defines the package name).
 - Backend: Firebase (Auth, Firestore); see [DATA_MODEL.md](DATA_MODEL.md) and [FIREBASE_SETUP.md](FIREBASE_SETUP.md).
 - MVP auth methods: email/password, Google, Apple.
-- Web hosting is stretch; mobile-first delivery is required.
+- Mobile and web are dual priorities: web ships hosted (Firebase Hosting) and secured
+  (Firestore Security Rules) now; mobile continues toward eventual app-store
+  publishing. See [PRODUCT.md](PRODUCT.md#web-hosting--deployment-confirmed).
+
+## Routing
+
+**Status: chosen** — `go_router`, independent of the state-management decision below
+(no Provider/Riverpod/Bloc introduced; `go_router` doesn't require one). Routes:
+`/runs`, `/catalog`, `/catalog/:itemId`, `/challenges`, `/login`, `/account`. Auth
+gating stays a widget wrapper (`AuthGate`), not a `go_router` redirect. See the
+"Routing" subsection of [ARCHITECTURE.md](ARCHITECTURE.md) for the full route table and
+rationale.
+
+**Non-goal for now**: SEO/SSR. Discoverability "would be nice" but is not a
+requirement — Flutter web's canvas-based rendering is fundamentally limited for
+crawlability regardless of renderer choice. Revisit only if discoverability becomes a
+real priority later (would need a genuinely server-rendered surface, out of scope
+today).
 
 ## State management
 
@@ -38,6 +55,11 @@ Until decided, agents should **not** introduce a heavy framework without updatin
 
 Use a single owner for cross-flow tab/route intent to prevent competing navigation updates.
 
+- This applies equally to `AppShellPage` (mobile chrome) and `WebShellPage` (web
+  chrome, picked by `ResponsiveShell` at a width breakpoint — see
+  [ARCHITECTURE.md](ARCHITECTURE.md)). Both consume `SessionController` via the shared
+  `ShellTabIntentMixin`; neither shell may reimplement or duplicate the
+  tab-reset/account-open logic locally.
 - Post-auth **tab** selection must flow through `SessionController.preferredTabIndex` when switching tabs (e.g. jump to Catalog). The **visible** bottom tab is also mirrored in `SessionController.persistShellTabIndex` / `shellTabIndex` (no notify) so `AppShellPage` can restore the correct tab after `AuthGate` rebuilds (e.g. session `notifyListeners` from challenge tier or catalog prefill).
 - Post-auth **Account** screen uses `SessionController.requestOpenAccount()` + `takePendingOpenAccount()` in `AppShellPage` (pushed route, not a tab index).
 - Challenges **win threshold** (`ChallengeChecklistTier`) is stored on `SessionController` (`challengeChecklistTier` / `setChallengeChecklistTier`) so the hub and pushed category detail screens stay aligned when navigating back.

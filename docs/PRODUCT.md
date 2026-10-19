@@ -14,7 +14,7 @@ This project is **not affiliated with or endorsed by** the makers of The Bazaar.
 
 ## Confirmed goals (from planning)
 
-- **Platforms**: Flutter for **mobile (priority)** and **web**, with the intent that neither platform is missing core features by design.
+- **Platforms**: Single Flutter codebase for **mobile and web as dual priorities** — web ships as a hosted, secured site now; mobile continues toward eventual app-store publishing. Neither platform is missing core features by design.
 - **Backend**: **Firebase** for cloud in the first version (auth + Firestore + hosting for web when applicable). **Ruby / custom servers** are out of scope unless explicitly added here later.
 - **Data**: Users can use the app as a **guest** with **local** storage; signed-in users can **sync** data to the cloud so mobile and web can access it.
 - **Item catalog**: **Master catalog in Firestore**, seeded and maintained by the project owner (e.g. Console or scripts)—not assumed to be scraped from the game automatically in v1.
@@ -31,7 +31,7 @@ This project is **not affiliated with or endorsed by** the makers of The Bazaar.
 | Guest mode (local-only wins) | Yes |
 | Account + cloud persistence (Firestore) | Yes |
 | Merge or upload guest wins after sign-in | Yes (merge local wins into cloud) |
-| Web build + hosting | Stretch |
+| Web build + hosting (Firebase Hosting, secured with Firestore rules) | Yes |
 
 ## MVP app navigation (confirmed)
 
@@ -130,8 +130,24 @@ Stretch:
 - Automated catalog updates from game patches (manual catalog updates only unless you add a process later).
 - Leaderboards, public profiles, or social feeds (unless added to this doc).
 
+## Web hosting & deployment (confirmed)
+
+- **Single Flutter codebase** for web — no separate web framework/rewrite. See
+  [ARCHITECTURE.md](ARCHITECTURE.md) for the adaptive-shell pattern that gives web a
+  distinct, web-conventional navigation chrome while reusing all mobile business logic
+  and content widgets, and for the routing approach (`go_router`).
+- Mobile's existing UI/navigation (bottom tabs, FAB) is unchanged by the web push.
+- **Hosting**: Firebase Hosting, deployed at the default `*.web.app` URL. No custom
+  domain for now.
+- **Deployment**: GitHub Actions auto-builds, tests, and deploys on push to `main`.
+- **Security**: Firestore Security Rules are committed at `mobile/firestore.rules` and
+  deployed alongside hosting — see [DATA_MODEL.md](DATA_MODEL.md).
+- **Out of scope for now**: Apple sign-in for web (stays "coming soon" on both
+  platforms), custom domain, and SEO/SSR work. Flutter web's canvas-based rendering
+  (CanvasKit/Skwasm) is fundamentally limited for search-engine crawlability regardless
+  of configuration; genuine discoverability would require server-side rendering, which
+  is a documented future enhancement, not solved in this phase.
+
 ## Additional constraints (confirmed)
 
-- Hosted web URL is **not required** for the class grade.
-- Mobile remains the first priority for MVP quality.
 - Keep Firestore collection names as currently documented.
