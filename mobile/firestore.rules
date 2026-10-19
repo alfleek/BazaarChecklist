@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Guest mode requires unauthenticated catalog browsing, so reads are public.
+    // The firebase/ data pipeline writes these via the Admin SDK, which bypasses
+    // Security Rules entirely, so no client write path is needed.
+    match /catalog_items/{itemId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /heroes/{heroId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /users/{uid}/runs/{runId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

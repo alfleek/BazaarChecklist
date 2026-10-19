@@ -48,3 +48,6 @@ app.*.map.json
 /android/app/google-services.json
 /ios/Runner/GoogleService-Info.plist
 **/GoogleService-Info.plist
+
+# Firebase CLI local deploy-cache state (not source, regenerated per machine)
+.firebase/

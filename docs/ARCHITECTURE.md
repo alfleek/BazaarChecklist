@@ -3,7 +3,7 @@
 ## Overview
 
 - **Client**: Single **Flutter** application (targets **iOS**, **Android**, **Web**) located under [mobile/](mobile/).
-- **Backend (v1)**: **Firebase** — Authentication, Cloud Firestore, and optionally Firebase Hosting for the web build.
+- **Backend (v1)**: **Firebase** — Authentication, Cloud Firestore, and Firebase Hosting for the web build.
 - **No separate Ruby or custom app server in v1** unless [PRODUCT.md](PRODUCT.md) is updated to require one.
 
 ```mermaid
@@ -16,7 +16,7 @@ flowchart LR
   subgraph firebase [Firebase]
     Auth[Auth]
     FS[Firestore]
-    Host[Hosting_optional]
+    Host[Hosting]
   end
   UI --> Repo
   Repo --> Auth
@@ -43,9 +43,31 @@ flowchart LR
 
 ### Web vs mobile
 
-- **Same codebase**; avoid `kIsWeb` branches except for documented reasons (e.g. storage quirks, URL strategy).
+- **Same codebase**; avoid `kIsWeb` branches except for documented reasons. Two
+  documented exceptions exist:
+  1. `AuthService.signInWithGoogle` branches on `kIsWeb` to use `signInWithPopup` on
+     web vs. native `GoogleSignIn.authenticate()` on mobile — a genuine platform API
+     difference.
+  2. `ResponsiveShell` picks between `AppShellPage` (existing mobile chrome: bottom
+     `NavigationBar` + FAB, unchanged) and `WebShellPage` (web-conventional chrome: top
+     nav/side rail) based on a **width breakpoint** (`MediaQuery` width, currently
+     900px), not `kIsWeb`. This is deliberate: a wide tablet should get the web-style
+     shell and a narrow desktop browser window should still get the mobile-style shell.
+     Both shells consume the same `SessionController` tab/account-intent contract via a
+     shared mixin (`ShellTabIntentMixin`) so navigation-intent ownership stays singular
+     per [AI_CODING.md](AI_CODING.md) — neither shell duplicates the other's
+     tab-reset/account-open logic. All page *content* (Runs list, Catalog, Challenges,
+     Account, Build input) is shared unmodified between shells; only the navigation
+     chrome differs.
+- **Routing**: `go_router` provides real URL routes (`/runs`, `/catalog`,
+  `/catalog/:itemId`, `/challenges`, `/login`, `/account`) so the web build has
+  shareable/bookmarkable links and working browser back/forward. Auth gating remains a
+  widget wrapper (`AuthGate`), not a `go_router` redirect, since guests already reach
+  every tab today — there is no auth-based route blocking to express. `RunDetailPage`
+  and `ChallengeDetailPage` are not URL-addressable yet (they take live objects rather
+  than ids); this is a deliberate scope cut, not an oversight.
 - Feature parity is a **goal**; any intentional gap must be listed in [PRODUCT.md](PRODUCT.md).
-- For delivery priorities and grading constraints, use [PRODUCT.md](PRODUCT.md) as source of truth.
+- For delivery priorities, use [PRODUCT.md](PRODUCT.md) as source of truth.
 
 ## Repository layout (expected evolution)
 

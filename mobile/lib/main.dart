@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:mobile/features/auth/auth_gate.dart';
+import 'package:mobile/features/shell/app_router.dart';
 import 'package:mobile/firebase_options.dart';
 
 Future<void> main() async {
@@ -24,9 +24,10 @@ class BazaarChecklistApp extends StatelessWidget {
 
     final baseTheme = ThemeData.dark(useMaterial3: true);
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'BazaarChecklist',
       debugShowCheckedModeBanner: false,
+      routerConfig: appRouter,
       theme: baseTheme.copyWith(
         colorScheme: const ColorScheme.dark(
           primary: accent,
@@ -124,7 +125,6 @@ class BazaarChecklistApp extends StatelessWidget {
           style: TextButton.styleFrom(foregroundColor: accentSoft),
         ),
       ),
-      home: const AuthGate(),
     );
   }
 }

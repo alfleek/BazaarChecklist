@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile/features/auth/auth_service.dart';
 import 'package:mobile/features/auth/session_controller.dart';
-import 'package:mobile/features/shell/app_shell_page.dart';
+import 'package:mobile/features/shell/responsive_shell.dart';
 
 class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+  const AuthGate({super.key, this.initialTabIndex});
+
+  /// Tab-index hint from a route (e.g. `/challenges`). Falls back to
+  /// [SessionController.preferredTabIndex] when null so non-routed callers behave
+  /// exactly as before.
+  final int? initialTabIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -30,12 +35,12 @@ class AuthGate extends StatelessWidget {
                   : (user.email?.trim().isNotEmpty == true
                         ? user.email!
                         : 'Signed in');
-            return AppShellPage(
+            return ResponsiveShell(
               authLabel: authLabel,
               isGuest: isGuestContext,
               userId: user?.uid,
               showFirstRunAuthPopup: !hasAuthenticatedUser,
-              initialTabIndex: sessionController.preferredTabIndex,
+              initialTabIndex: initialTabIndex ?? sessionController.preferredTabIndex,
               onLogout: () async {
                 sessionController.requestOpenAccount();
                 await authService.signOut();

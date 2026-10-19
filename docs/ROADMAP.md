@@ -9,9 +9,9 @@ Aligned with a **short MVP window** and **mobile-first** delivery. Phases are se
 | **2 — Catalog** | Firestore catalog + browse UI | Seed `catalog_items`; list/search/filter/sort in app (MVP); cache strategy documented |
 | **3 — Guest wins** | Local persistence | Guest can save wins and see history + per-item coverage locally |
 | **4 — Auth + cloud** | Account sync | Sign-in; runs in `users/{uid}/runs` (including run result tiers); policy for guest merge implemented |
-| **5 — Web + hosting** | Parity + deploy | Stretch: web build; Hosting if time allows |
+| **5 — Web + hosting** | Hosted, secured web | `go_router` routing live; `ResponsiveShell`/`WebShellPage` adaptive web shell live; Firebase Hosting deployed at `*.web.app`; `firestore.rules` committed and deployed; GitHub Actions auto-deploy on push to `main` working |
 
-**Stretch**: Web deploy polish, richer catalog polish around `imageThumbUrl`/`imageFullUrl` handling, enchanted-per-item flags. **Challenges** checklist is implemented client-side; server-side gamification beyond runs is still a stretch.
+**Stretch**: Custom domain, richer catalog polish around `imageThumbUrl`/`imageFullUrl` handling, enchanted-per-item flags, SEO/SSR discoverability. **Challenges** checklist is implemented client-side; server-side gamification beyond runs is still a stretch.
 
 ## Class demo script (template)
 
@@ -22,6 +22,8 @@ Fill in before demo day:
 
 ## Confirmed constraints
 
-- Deployed web is **not required** for the grade.
+- Web and mobile are dual priorities; the web build is hosted (Firebase Hosting) and
+  secured (Firestore Security Rules) rather than left optional. See
+  [PRODUCT.md](PRODUCT.md#web-hosting--deployment-confirmed).
 - Guest-to-cloud merge is included in the auth milestone.
 - Documentation precedence is defined in [DOCS_GUIDE.md](DOCS_GUIDE.md).

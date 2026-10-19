@@ -93,9 +93,17 @@ Add composite indexes only when queries require them (e.g. filter + order). Docu
 
 ## Security Rules (intent)
 
-- **Allow read** of `catalog_items` and the hero list as needed for the app (authenticated or public read to be chosen when locking rules).
-- **Deny** all reads/writes to other users’ `users/{uid}/runs/*`.
+- **Allow public read** of `catalog_items` and `heroes` — guest mode requires
+  unauthenticated catalog browsing, so this can't be gated behind auth.
+- **Deny client writes** to `catalog_items`/`heroes` entirely — the `firebase/` data
+  pipeline writes these via the Admin SDK, which bypasses Security Rules, so no client
+  write path is needed.
+- **Deny** all reads/writes to other users' `users/{uid}/runs/*`.
 - **Allow** read/write only for `users/{request.auth.uid}/runs/*` when `request.auth != null`.
+
+Source of truth: `mobile/firestore.rules`, committed in the repo and deployed via
+`firebase deploy --only firestore:rules` (manually, then via CI on push to `main`) —
+not hand-pasted into the Firebase Console.
 
 ## Sync behavior (confirmed)
 
@@ -109,4 +117,4 @@ Add composite indexes only when queries require them (e.g. filter + order). Docu
 - Signed-in mode: cached catalog and local history view of already-synced runs remain available offline.
 - Offline writes in signed-in mode can be queued locally and synced when network returns (implementation detail may vary by chosen local store).
 
-Paste finalized rules into Firebase Console; keep a comment or snippet here only if the team wants versioned documentation (optional).
+Rules are version-controlled at `mobile/firestore.rules` (see "Security Rules (intent)" above) rather than hand-pasted into the Firebase Console.
